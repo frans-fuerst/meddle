@@ -2,6 +2,12 @@
 
 import zmq
 #import capnp
+import getpass
+
+
+def username():
+    # todo: format (spaces, etc)
+    return getpass.getuser()
 
 def request(socket, text):
     socket.send_string(text)
@@ -35,6 +41,12 @@ def main():
     message = sub_socket.recv_string()
     text = message[10:]
     print("got: '%s'" % text)
+
+    import fileinput
+
+    for line in fileinput.input():
+        print("line: "+line)
+        pass
    
 
 if __name__ == "__main__":

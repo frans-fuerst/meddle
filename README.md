@@ -13,9 +13,13 @@ Under the hood
 
 zeromq, capnproto, python
 
+
 Installation
 ------------
-python3-pip
+
+* python3-zmq
+* for capnproto: python3-pip
+
 
 Sequence
 --------
@@ -27,4 +31,19 @@ Sequence
 * client2 initializes with name "bob" and connects to 12345
 
 * client1 sends a createChannel(invite: [bob])
+
+
+ToDo
+----
+
+- [ ] Named messages
+- [ ] Recognize hashtags
+- [ ] Invite on hashtags
+- [ ] Log messages
+- [ ] Search in logs
+- [ ] Leave room
+- [ ] Qt interface
+- [ ] Multi room
+- [ ] Watchdog
+- [ ] Send files
 
