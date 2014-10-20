@@ -11,18 +11,17 @@ def main():
     context = zmq.Context()
 
     # Socket to talk to server
-    print("Connecting to hello world server…")
+    print("connect to rpc")
     socket = context.socket(zmq.REQ)
     socket.connect("tcp://localhost:5555")
 
-    # Do 10 requests, waiting each time for a response
-    for request in range(10):
-        print("Sending request %s …" % request)
-        socket.send(b"Hello")
+    socket.send_string("hello alice")
+    message = socket.recv()
+    print(message)
 
-        # Get the reply.
-        message = socket.recv()
-        print("Received reply %s [ %s ]" % (request, message))
+    socket.send_string("createChannel bob")
+    message = socket.recv()
+    print(message)
 
 if __name__ == "__main__":
     main()

@@ -11,8 +11,16 @@ def main():
     socket.bind("tcp://*:5555")
 
     while True:
-        message = socket.recv()
-        socket.send(b'ok')
+        message = socket.recv().decode()
+        print(message)
+        if message.startswith("hello"):
+            socket.send_string("hello " + message[5:])
+        if message.startswith("createChannel"):
+            print("hello")
+            socket.send('abcdef')
+        else:
+
+            socket.send('nok')
 
 if __name__ == "__main__":
     main()
