@@ -18,8 +18,9 @@ Installation
 ------------
 
 * python3-zmq
-* for capnproto: python3-pip
-
+* for capnproto: python3-Cython.x86_64
+* for capnproto: python3-devel
+* for capnproto: python3-pip http://jparyani.github.io/pycapnp/
 
 Sequence
 --------

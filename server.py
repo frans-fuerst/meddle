@@ -24,27 +24,38 @@ def main():
 
     _rpc_socket = _context.socket(zmq.REP)
     _rpc_socket.bind("tcp://*:5555")
+    _channels = {}
 
     print("meddle server up")
 
     while True:
         _message = _rpc_socket.recv_string()
         print("got '%s' (%s)" % (_message, type(_message)))
+
         if _message.startswith("hello "):
             _name = _message[6:].strip()
             print("'%s'" % _name)
             _names[_next_id] = _name
             _rpc_socket.send_string("hello %d" % _next_id)
             _next_id += 1
+
         elif _message.startswith("createChannel "):
-            _rpc_socket.send_string(random_string(10))
+            _channel_name = random_string(10)
+            # todo - check collisions
+            _rpc_socket.send_string(_channel_name)
+            _channels[_channel_name] = None
+
+        elif _message.startswith("get_channels"):
+            _rpc_socket.send_string(" ".join(_channels.keys()))
+
         elif _message.startswith("publish "):
             _sender_id = int(_rpc_socket.recv_string())
-            _name = _names[_sender_id]
             _rpc_socket.send_string("ok")
+            _name = _names[_sender_id]
             _channel = _message[8:8 + 10]
             _text = _message[8 + 10 + 1:]
             publish(_pub_socket, _name, _channel, _text)
+
         else:
             _rpc_socket.send_string('nok')
 

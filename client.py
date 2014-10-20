@@ -42,8 +42,15 @@ def main():
     my_id = answer[6:]
     print("server: calls us '%s'" % my_id)
 
-    answer = request(rpc_socket, "createChannel bob")
-    channel = answer
+    answer = request(rpc_socket, "get_channels")
+    _channels = answer.split()
+    print("channels: %s" % _channels)
+
+    if _channels == []:
+        answer = request(rpc_socket, "createChannel bob")
+        channel = answer
+    else:
+        channel = _channels[0]
 
     print("talking on channel '%s'" % channel)
     _thread = Thread(target=lambda: recieve_messages(sub_socket, channel))
