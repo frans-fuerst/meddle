@@ -36,10 +36,11 @@ Sequence
 ToDo
 ----
 
-- [ ] Named messages
+- [x] Named messages
+- [ ] Join rooms
+- [ ] Log messages
 - [ ] Recognize hashtags
 - [ ] Invite on hashtags
-- [ ] Log messages
 - [ ] Search in logs
 - [ ] Leave room
 - [ ] Qt interface

@@ -6,43 +6,48 @@ import string
 #import capnp
 
 
-def publish(socket, channel, text):
-    print("publish to '%s': '%s'" %(channel, text))
-    socket.send_string(channel + text)
+def publish(socket, participant, channel, text):
+    print("%s publishes to '%s': '%s'" % (participant, channel, text))
+    socket.send_multipart([(channel + text).encode(), participant.encode()])
 
 def random_string(N):
     return ''.join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 def main():
-    context = zmq.Context()
+    _context = zmq.Context()
+    _next_id = 0
+    _names = {}
     
-    pub_socket = context.socket(zmq.PUB)
-    pub_socket.bind("tcp://*:5556")
+    _pub_socket = _context.socket(zmq.PUB)
+    _pub_socket.bind("tcp://*:5556")
+
+    _rpc_socket = _context.socket(zmq.REP)
+    _rpc_socket.bind("tcp://*:5555")
 
     print("meddle server up")
-    rpc_socket = context.socket(zmq.REP)
-    rpc_socket.bind("tcp://*:5555")
 
     while True:
-        message = rpc_socket.recv_string()
-        print("got '%s' (%s)" % (message, type(message)))
-        if message.startswith("hello "):
-            rpc_socket.send_string("hello " + message[6:])
-        elif message.startswith("createChannel "):
-            print("hello")
-            rpc_socket.send_string(random_string(10))
-        elif message.startswith("publish "):
-            rpc_socket.send_string("ok")
-            channel = message[8:8 + 10]
-            text = message[8 + 10 + 1:]
-            publish(pub_socket, channel, text)
+        _message = _rpc_socket.recv_string()
+        print("got '%s' (%s)" % (_message, type(_message)))
+        if _message.startswith("hello "):
+            _name = _message[6:].strip()
+            print("'%s'" % _name)
+            _names[_next_id] = _name
+            _rpc_socket.send_string("hello %d" % _next_id)
+            _next_id += 1
+        elif _message.startswith("createChannel "):
+            _rpc_socket.send_string(random_string(10))
+        elif _message.startswith("publish "):
+            _sender_id = int(_rpc_socket.recv_string())
+            _name = _names[_sender_id]
+            _rpc_socket.send_string("ok")
+            _channel = _message[8:8 + 10]
+            _text = _message[8 + 10 + 1:]
+            publish(_pub_socket, _name, _channel, _text)
         else:
-            rpc_socket.send_string('nok')
+            _rpc_socket.send_string('nok')
 
-    for i in range(3):
-        time.sleep(1)
-        publish(pub_socket, channel, text)
 
 if __name__ == "__main__":
     main()
