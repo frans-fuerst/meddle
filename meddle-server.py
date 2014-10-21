@@ -3,11 +3,11 @@
 import zmq
 import random
 import string
-#import capnp
+import logging
 
 
 def publish(socket, participant, channel, text):
-    print("%s publishes to '%s': '%s'" % (participant, channel, text))
+    logging.debug("%s publishes to '%s': '%s'" % (participant, channel, text))
     socket.send_multipart([(channel + text).encode(), participant.encode()])
 
 def random_string(N):
@@ -18,23 +18,24 @@ def main():
     _context = zmq.Context()
     _next_id = 0
     _names = {}
+    _channels = {}
     
+    _rpc_socket = _context.socket(zmq.REP)
+    _rpc_socket.bind("tcp://*:32100")
+
     _pub_socket = _context.socket(zmq.PUB)
     _pub_socket.bind("tcp://*:32101")
 
-    _rpc_socket = _context.socket(zmq.REP)
-    _rpc_socket.bind("tcp://*:32100")
-    _channels = {}
-
-    print("meddle server up")
+    logging.info("meddle server up")
 
     while True:
+        logging.debug("waiting..")
         _message = _rpc_socket.recv_string()
-        print("got '%s' (%s)" % (_message, type(_message)))
+        logging.debug("got '%s' (%s)" % (_message, type(_message)))
 
         if _message.startswith("hello "):
             _name = _message[6:].strip()
-            print("'%s'" % _name)
+            logging.debug("using name '%s'" % _name)
             _names[_next_id] = _name
             _rpc_socket.send_string("hello %d" % _next_id)
             _next_id += 1
@@ -55,12 +56,23 @@ def main():
             _channel = _message[8:8 + 10]
             _text = _message[8 + 10 + 1:]
             publish(_pub_socket, _name, _channel, _text)
-
+            
         else:
             _rpc_socket.send_string('nok')
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s (%(thread)d) %(levelname)s %(message)s",
+        datefmt="%y%m%d-%H%M%S",
+        level=logging.DEBUG)
+    logging.addLevelName(logging.CRITICAL, "(CRITICAL)")
+    logging.addLevelName(logging.ERROR,    "(EE)")
+    logging.addLevelName(logging.WARNING,  "(WW)")
+    logging.addLevelName(logging.INFO,     "(II)")
+    logging.addLevelName(logging.DEBUG,    "(DD)")
+    logging.addLevelName(logging.NOTSET,   "(NA)")
+    
     main()
 
 

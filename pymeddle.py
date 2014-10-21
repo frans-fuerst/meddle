@@ -6,7 +6,7 @@ import getpass
 from threading import Thread
 import sys
 import pymeddle
-
+import logging
 
 def username():
     # todo: format (spaces, etc)
@@ -83,7 +83,7 @@ class base:
             message = socket.recv_string()
             name = socket.recv_string()
             text = message[10:]
-            print("%s: '%s'" % (name, text))
+            logging.info("incoming message %s: '%s'" % (name, text))
             self._handler.meddle_on_message("%s: '%s'" % (name, text))
 
 
