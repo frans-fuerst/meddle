@@ -37,7 +37,7 @@ class Example(QtGui.QWidget):
         self.init_ui()
         self.meddle_base = pymeddle.base(self)
         _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
-        self.meddle_base.connect("tcp://%s:32100" % _server)
+        self.meddle_base.connect(_server, 7000)
         self._txt_message_edit.setFocus()
       
     def init_ui(self):

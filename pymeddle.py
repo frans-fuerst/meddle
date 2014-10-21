@@ -25,22 +25,23 @@ class base:
         self._my_id = 0
         self._subscriptions = []
 
-    def connect(self, server_address):
-        _thread = Thread(target=lambda: self.rpc_thread(server_address))
+    def connect(self, server, port):
+        _thread = Thread(target=lambda: self.rpc_thread(server, port))
         _thread.daemon = True
         _thread.start()
 
     def subscriptions(self):
         return self._subscriptions
 
-    def rpc_thread(self, server_address):
+    def rpc_thread(self, server, port):
 
         print("connect to rpc")
         self._rpc_socket = self.context.socket(zmq.REQ)
-        self._rpc_socket.connect(server_address)
+        self._rpc_socket.connect("tcp://%s:%d" % (server, port))
 
         sub_socket = self.context.socket(zmq.SUB)
-        sub_socket.connect("tcp://localhost:32101")
+        server = "scitics.de"
+        sub_socket.connect("tcp://%s:%d" % (server, port + 1))
 
         answer = request(self._rpc_socket, "hello %s" % username())
         self._my_id = answer[6:]

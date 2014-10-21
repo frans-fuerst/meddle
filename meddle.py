@@ -31,11 +31,12 @@ def main():
     context = zmq.Context()
 
     print("connect to rpc")
-    rpc_socket = context.socket(zmq.REQ)
-    rpc_socket.connect("tcp://localhost:32100")
 
     sub_socket = context.socket(zmq.SUB)
-    sub_socket.connect("tcp://localhost:32101")
+    sub_socket.connect("tcp://localhost:7001")
+
+    rpc_socket = context.socket(zmq.REQ)
+    rpc_socket.connect("tcp://localhost:7000")
 
     answer = request(rpc_socket, "hello %s" % username())
     my_id = answer[6:]
