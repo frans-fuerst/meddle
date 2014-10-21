@@ -55,3 +55,8 @@ ToDo
 - [ ] Watchdog
 - [ ] Send files
 
+
+Reference
+---------
+
+Nice Qt4 Tutorial: http://zetcode.com/gui/pyqt4/

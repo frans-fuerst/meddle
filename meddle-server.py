@@ -20,10 +20,10 @@ def main():
     _names = {}
     
     _pub_socket = _context.socket(zmq.PUB)
-    _pub_socket.bind("tcp://*:5556")
+    _pub_socket.bind("tcp://*:32101")
 
     _rpc_socket = _context.socket(zmq.REP)
-    _rpc_socket.bind("tcp://*:5555")
+    _rpc_socket.bind("tcp://*:32100")
     _channels = {}
 
     print("meddle server up")

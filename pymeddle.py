@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import zmq
-#import capnp
 import getpass
 from threading import Thread
 import sys
@@ -17,48 +16,50 @@ def request(socket, text):
     socket.send_string(text)
     return socket.recv_string()
 
-def publish(socket, my_id, channel, text):
-    socket.send_multipart([("publish %s %s" % (channel, text)).encode(),
-                            my_id.encode(),])
-    answer = socket.recv_string()
-    return answer
 
 class base:
 
-    def __init__(self):
+    def __init__(self, handler):
         self.context = zmq.Context()
-        pass
+        self._handler = handler
+        self._my_id = 0
+        self._subscriptions = []
 
     def connect(self, server_address):
         _thread = Thread(target=lambda: self.rpc_thread(server_address))
         _thread.daemon = True
         _thread.start()
 
+    def subscriptions(self):
+        return self._subscriptions
+
     def rpc_thread(self, server_address):
 
         print("connect to rpc")
-        rpc_socket = self.context.socket(zmq.REQ)
-        rpc_socket.connect(server_address)
+        self._rpc_socket = self.context.socket(zmq.REQ)
+        self._rpc_socket.connect(server_address)
 
         sub_socket = self.context.socket(zmq.SUB)
-        sub_socket.connect("tcp://localhost:5556")
+        sub_socket.connect("tcp://localhost:32101")
 
-        answer = request(rpc_socket, "hello %s" % username())
-        my_id = answer[6:]
-        print("server: calls us '%s'" % my_id)
+        answer = request(self._rpc_socket, "hello %s" % username())
+        self._my_id = answer[6:]
+        print("server: calls us '%s'" % self._my_id)
 
-        answer = request(rpc_socket, "get_channels")
+        answer = request(self._rpc_socket, "get_channels")
         _channels = answer.split()
         print("channels: %s" % _channels)
 
         if _channels == []:
-            answer = request(rpc_socket, "createChannel bob")
-            channel = answer
+            answer = request(self._rpc_socket, "createChannel bob")
+            self._subscriptions.append(answer)
         else:
-            channel = _channels[0]
+            self._subscriptions.append(_channels[0])
 
-        print("talking on channel '%s'" % channel)
-        _thread = Thread(target=lambda: self.recieve_messages(sub_socket, channel))
+        self._handler.meddle_on_update()
+
+        print("talking on channel '%s'" % self._subscriptions[0])
+        _thread = Thread(target=lambda: self.recieve_messages(sub_socket, self._subscriptions[0]))
         _thread.daemon = True
         _thread.start()
 
@@ -68,8 +69,13 @@ class base:
                 sys.exit(0)
             if text.strip() == "":
                 continue
-            answer = publish(rpc_socket, my_id, channel, text)
+            answer = self.publish(self._subscriptions[0], text)
 
+    def publish(self, channel, text):
+        self._rpc_socket.send_multipart([("publish %s %s" % (self._subscriptions[0], text)).encode(),
+                                self._my_id.encode(),])
+        answer = self._rpc_socket.recv_string()
+        return answer
 
     def recieve_messages(self, socket, channel):
         socket.setsockopt_string(zmq.SUBSCRIBE, channel)
@@ -78,6 +84,7 @@ class base:
             name = socket.recv_string()
             text = message[10:]
             print("%s: '%s'" % (name, text))
+            self._handler.meddle_on_message("%s: '%s'" % (name, text))
 
 
 def main():
