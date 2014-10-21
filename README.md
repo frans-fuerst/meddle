@@ -21,7 +21,9 @@ zeromq, capnproto, python
 Installation
 ------------
 
-* python3-zmq
+* install zeromq `apt-get install python3-zmq`
+* install PyQt4 `apt-get install python3-pyqt4`
+
 * for capnproto: python3-Cython.x86_64
 * for capnproto: python3-devel
 * for capnproto: python3-pip http://jparyani.github.io/pycapnp/
