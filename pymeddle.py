@@ -7,6 +7,7 @@ from threading import Thread
 import sys
 import pymeddle
 import logging
+from optparse import OptionParser
 
 def username():
     # todo: format (spaces, etc)
@@ -35,21 +36,20 @@ class base:
 
     def rpc_thread(self, server, port):
 
-        print("connect to rpc")
+        logging.info("connect to rpc tcp://%s:%d" % (server, port))
         self._rpc_socket = self.context.socket(zmq.REQ)
         self._rpc_socket.connect("tcp://%s:%d" % (server, port))
 
         sub_socket = self.context.socket(zmq.SUB)
-        server = "scitics.de"
         sub_socket.connect("tcp://%s:%d" % (server, port + 1))
 
         answer = request(self._rpc_socket, "hello %s" % username())
         self._my_id = answer[6:]
-        print("server: calls us '%s'" % self._my_id)
+        logging.info("server: calls us '%s'" % self._my_id)
 
         answer = request(self._rpc_socket, "get_channels")
         _channels = answer.split()
-        print("channels: %s" % _channels)
+        logging.info("channels: %s" % _channels)
 
         if _channels == []:
             answer = request(self._rpc_socket, "createChannel bob")
@@ -59,7 +59,7 @@ class base:
 
         self._handler.meddle_on_update()
 
-        print("talking on channel '%s'" % self._subscriptions[0])
+        logging.info("talking on channel '%s'" % self._subscriptions[0])
         _thread = Thread(target=lambda: self.recieve_messages(sub_socket, self._subscriptions[0]))
         _thread.daemon = True
         _thread.start()
@@ -85,7 +85,7 @@ class base:
             name = socket.recv_string()
             text = message[10:]
             logging.info("incoming message %s: '%s'" % (name, text))
-            self._handler.meddle_on_message("%s: '%s'" % (name, text))
+            self._handler.meddle_on_message(name, text)
 
 
 def main():

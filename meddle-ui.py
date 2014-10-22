@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import zmq
-import getpass
 from threading import Thread
 import sys
 from PyQt4 import QtGui, QtCore, Qt
@@ -37,7 +35,7 @@ class Example(QtGui.QWidget):
         self.init_ui()
         self.meddle_base = pymeddle.base(self)
         _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
-        self.meddle_base.connect(_server, 7000)
+        self.meddle_base.connect(_server, 32100)
         self._txt_message_edit.setFocus()
       
     def init_ui(self):
@@ -73,11 +71,11 @@ class Example(QtGui.QWidget):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
 
-    def meddle_on_message(self, text):
+    def meddle_on_message(self, name, text):
         QtCore.QMetaObject.invokeMethod(
                 self._txt_messages, "append_message", 
                 QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, text))
+                QtCore.Q_ARG(str, "%s: %s" % (name,text)))
 
     def meddle_on_update(self):
         self._lbl_chat_room.setText(self.meddle_base.subscriptions()[0])      

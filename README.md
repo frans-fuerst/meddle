@@ -1,21 +1,29 @@
-zero_chat
-=========
+meddle
+======
 
-zeromq based self hosted chat with hash invitation logging and searching
+A based self hosted chat with hash invitation, logging and searching
 
 
 How it works
 ------------
 
-* start client 
+* start client
+  - register for tags
+  - get notified when tag is mentioned
+  - start chatting with persons or alone
+  - search for tags or plain text
+
 * on command line
-** meddle send martin <message>
+  - meddle send martin <message>
 
 
 Under the hood
 --------------
 
-zeromq, capnproto, python
+* Base language Python3
+* zeromq for communication
+* Clients: CLI, PyQt (later: web, Android)
+* no capnproto/protobuf: complicated, binary dependencies
 
 
 Installation
@@ -58,7 +66,28 @@ ToDo
 - [ ] Send files
 
 
+Architecture:
+-------------
+
+Server:
+
+* Users {Id, Name, Interests(Tags)}
+* Active connections to users
+    - with heartbeat
+* Channels (Rooms/Conversations)
+* Tags {name: {[user:count], [channel:count]}}
+    - for statistics, context
+    - points to Users and channels
+
+
+Client:
+* Connection to a server
+* Interests [tag:count]
+* Active subscriptions
+
+
 Reference
 ---------
 
 Nice Qt4 Tutorial: http://zetcode.com/gui/pyqt4/
+

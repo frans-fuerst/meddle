@@ -1,72 +1,51 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import zmq
-import getpass
-from threading import Thread
 import sys
+import logging
 
-def username():
-    # todo: format (spaces, etc)
-    return getpass.getuser()
+import pymeddle
 
-def request(socket, text):
-    socket.send_string(text)
-    return socket.recv_string()
 
-def recieve_messages(socket, channel):
-    socket.setsockopt_string(zmq.SUBSCRIBE, channel)
-    while True:
-        message = socket.recv_string()
-        name = socket.recv_string()
-        text = message[10:]
-        print("%s: '%s'" % (name, text))
+class client_cli:
+    
+    def __init__(self):
+        self._meddle_base = pymeddle.base(self)
+        _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
+        self._meddle_base.connect(_server, 32100)
 
-def publish(socket, my_id, channel, text):
-    socket.send_multipart([("publish %s %s" % (channel, text)).encode(),
-                            my_id.encode(),])
-    answer = socket.recv_string()
-    return answer
+    def meddle_on_message(self, name, text):
+        logging.info("%s said: '%s'" % (name, text))
 
-def main():
-    context = zmq.Context()
+    def meddle_on_update(self):
+        logging.info("subscription: %s" % self._meddle_base.subscriptions()[0])
 
-    print("connect to rpc")
+    def run(self):
 
-    sub_socket = context.socket(zmq.SUB)
-    sub_socket.connect("tcp://localhost:7001")
-
-    rpc_socket = context.socket(zmq.REQ)
-    rpc_socket.connect("tcp://localhost:7000")
-
-    answer = request(rpc_socket, "hello %s" % username())
-    my_id = answer[6:]
-    print("server: calls us '%s'" % my_id)
-
-    answer = request(rpc_socket, "get_channels")
-    _channels = answer.split()
-    print("channels: %s" % _channels)
-
-    if _channels == []:
-        answer = request(rpc_socket, "createChannel bob")
-        channel = answer
-    else:
-        channel = _channels[0]
-
-    print("talking on channel '%s'" % channel)
-    _thread = Thread(target=lambda: recieve_messages(sub_socket, channel))
-    _thread.daemon = True
-    _thread.start()
-
-    while True:
-        text = sys.stdin.readline().strip('\n')
-        if text in ('quit', 'exit'):
-            sys.exit(0)
-        if text.strip() == "":
-            continue
-        answer = publish(rpc_socket, my_id, channel, text)
+        while True:
+            text = sys.stdin.readline().strip('\n')
+            if text in ('quit', 'exit'):
+                sys.exit(0)
+            if text.strip() == "":
+                continue
+            self._meddle_base.publish("todo", text)
    
+def main():
+    client_cli().run()
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s (%(thread)d) %(levelname)s %(message)s",
+        datefmt="%y%m%d-%H%M%S",
+        level=logging.DEBUG)
+    logging.addLevelName(logging.CRITICAL, "(CRITICAL)")
+    logging.addLevelName(logging.ERROR,    "(EE)")
+    logging.addLevelName(logging.WARNING,  "(WW)")
+    logging.addLevelName(logging.INFO,     "(II)")
+    logging.addLevelName(logging.DEBUG,    "(DD)")
+    logging.addLevelName(logging.NOTSET,   "(NA)")
+
     main()
 
 

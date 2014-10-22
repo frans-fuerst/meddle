@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import zmq
 import random
@@ -19,14 +20,17 @@ def main():
     _next_id = 0
     _names = {}
     _channels = {}
+    _port_rpc = 32100
+    _port_pub = 32101
     
     _rpc_socket = _context.socket(zmq.REP)
-    _rpc_socket.bind("tcp://*:32100")
+    _rpc_socket.bind("tcp://*:%d" % _port_rpc)
 
     _pub_socket = _context.socket(zmq.PUB)
-    _pub_socket.bind("tcp://*:32101")
+    _pub_socket.bind("tcp://*:%d" % _port_pub)
 
-    logging.info("meddle server up")
+    logging.info("meddle server listening on port %d, sending on port %d" %
+                    (_port_rpc, _port_pub))
 
     while True:
         logging.debug("waiting..")
