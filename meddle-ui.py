@@ -13,8 +13,6 @@ class chat_widget(QtGui.QPlainTextEdit):
 
     def __init__(self):
         super(chat_widget, self).__init__()
-
-        self._log_file = open('logfile', 'a')
         self.setReadOnly(True)
 
     @QtCore.pyqtSlot(str)
@@ -22,9 +20,6 @@ class chat_widget(QtGui.QPlainTextEdit):
         logging.info("appendMessage: " + text + str(type(text)))
         self.appendPlainText(text)
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
-        self._log_file.write(text)
-        self._log_file.write('\n')
-        self._log_file.flush()
 
 
 class Example(QtGui.QWidget):

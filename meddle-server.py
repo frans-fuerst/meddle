@@ -10,6 +10,9 @@ import logging
 def publish(socket, participant, channel, text):
     logging.debug("%s publishes to '%s': '%s'" % (participant, channel, text))
     socket.send_multipart([(channel + text).encode(), participant.encode()])
+    with open('_%s.log' % channel, 'a') as f:
+        f.write("%s: %s: %s: %s" % ("time", channel, participant, text))
+        f.write("\n")
 
 def random_string(N):
     return ''.join(
