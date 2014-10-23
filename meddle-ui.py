@@ -22,50 +22,66 @@ class chat_output_widget(QtGui.QPlainTextEdit):
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
 
 
-class Example(QtGui.QWidget):
-    
+class chat_widget(QtGui.QWidget):
     def __init__(self):
-        super(Example, self).__init__()
-        
+        super(chat_widget, self).__init__()
         self.init_ui()
-        self.meddle_base = pymeddle.base(self)
-        _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
-        self.meddle_base.connect(_server, 32100)
-        self._txt_message_edit.setFocus()
-      
+
     def init_ui(self):
-        logging.info("init_ui")
-
-        self._lst_rooms = QtGui.QListWidget()
-
-        for i in range(10):
-            _item1 = QtGui.QListWidgetItem()
-            self._lst_rooms.addItem(_item1)    
-            self._lst_rooms.setItemWidget(_item1, QtGui.QLabel('<channelname>'))
-          
         self._lbl_chat_room = QtGui.QLabel('<channelname>')      
         self._txt_message_edit = QtGui.QLineEdit()
         self._txt_messages = chat_output_widget()      
 
-        print(self._txt_message_edit.objectName())
-        #print(dir(self._txt_messages))
         self._txt_message_edit.returnPressed.connect(self.on__txt_message_edit_returnPressed)
 
         _grid = QtGui.QGridLayout()
         _grid.setSpacing(10)
 
-        _grid.addWidget(self._lst_rooms,        1, 0)
-        _grid.addWidget(self._lbl_chat_room,    3, 0)
-        _grid.addWidget(self._txt_messages,     4, 0, 5, 1)
-        _grid.addWidget(self._txt_message_edit, 9, 0, 2, 1)
+        _grid.addWidget(self._lbl_chat_room,    0, 0)
+        _grid.addWidget(self._txt_messages,     1, 0, 2, 1)
+        _grid.addWidget(self._txt_message_edit, 4, 0, 1, 1)
         
         self.setLayout(_grid) 
+
+    def on__txt_message_edit_returnPressed(self):
+        print("bla")
+
+
+class MeddleWindow(QtGui.QWidget):
+    
+    def __init__(self):
+        super(MeddleWindow, self).__init__()
         
-        self.setGeometry(300, 300, 350, 300)
+        self.init_ui()
+        self.meddle_base = pymeddle.base(self)
+        _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
+        self.meddle_base.connect(_server, 32100)
+        #self._txt_message_edit.setFocus()
+      
+    def init_ui(self):
+        logging.info("init_ui")
+
+        #self._lst_rooms = chat_widget()
+        self._lst_rooms = QtGui.QListWidget()
+
+        for i in range(2):
+            _item1 = QtGui.QListWidgetItem()
+            _item1.setSizeHint(QtCore.QSize(200,200))
+
+            self._lst_rooms.addItem(_item1)    
+            self._lst_rooms.setItemWidget(_item1, chat_widget())
+          
+        _grid = QtGui.QGridLayout()
+        _grid.setSpacing(10)
+
+        _grid.addWidget(self._lst_rooms,    1, 0)
+        
+        self.setLayout(_grid) 
+       
+        self.setGeometry(800, 100, 500, 300)
         self.setWindowTitle('meddle')    
         self.show()
 
-    @QtCore.pyqtSlot(str, name='on__txt_message_edit_returnPressed') 
     def on__txt_message_edit_returnPressed(self):
         self.meddle_base.publish("todo", self._txt_message_edit.text())
         self._txt_message_edit.setText("")
@@ -86,7 +102,7 @@ class Example(QtGui.QWidget):
 def main():
     logging.info("main")
     app = QtGui.QApplication(sys.argv)
-    ex = Example()
+    ex = MeddleWindow()
     sys.exit(app.exec_())
    
 
