@@ -34,17 +34,19 @@ class chat_widget(QtGui.QWidget):
 
         self._txt_message_edit.returnPressed.connect(self.on__txt_message_edit_returnPressed)
 
-        _grid = QtGui.QGridLayout()
-        _grid.setSpacing(10)
+        _grid = QtGui.QVBoxLayout()
+        #_grid.setSpacing(10)
 
-        _grid.addWidget(self._lbl_chat_room,    0, 0)
-        _grid.addWidget(self._txt_messages,     1, 0, 2, 1)
-        _grid.addWidget(self._txt_message_edit, 4, 0, 1, 1)
+        _grid.addWidget(self._lbl_chat_room)
+        _grid.addWidget(self._txt_messages)
+        _grid.addWidget(self._txt_message_edit)
         
         self.setLayout(_grid) 
 
     def on__txt_message_edit_returnPressed(self):
-        print("bla")
+        #self.meddle_base.publish("todo", self._txt_message_edit.text())
+        self._txt_message_edit.setText("")
+        pass
 
 
 class MeddleWindow(QtGui.QWidget):
@@ -66,15 +68,15 @@ class MeddleWindow(QtGui.QWidget):
 
         for i in range(2):
             _item1 = QtGui.QListWidgetItem()
-            _item1.setSizeHint(QtCore.QSize(200,200))
+            _item1.setSizeHint(QtCore.QSize(100,200))
 
             self._lst_rooms.addItem(_item1)    
             self._lst_rooms.setItemWidget(_item1, chat_widget())
           
-        _grid = QtGui.QGridLayout()
-        _grid.setSpacing(10)
+        _grid = QtGui.QVBoxLayout()
+        #_grid.setSpacing(10)
 
-        _grid.addWidget(self._lst_rooms,    1, 0)
+        _grid.addWidget(self._lst_rooms)
         
         self.setLayout(_grid) 
        
@@ -82,9 +84,6 @@ class MeddleWindow(QtGui.QWidget):
         self.setWindowTitle('meddle')    
         self.show()
 
-    def on__txt_message_edit_returnPressed(self):
-        self.meddle_base.publish("todo", self._txt_message_edit.text())
-        self._txt_message_edit.setText("")
 
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
@@ -97,7 +96,7 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(str, "%s: %s" % (name,text)))
 
     def meddle_on_update(self):
-        self._lbl_chat_room.setText(self.meddle_base.subscriptions()[0])      
+        _chat_room = self.meddle_base.subscriptions()[0]
 
 def main():
     logging.info("main")
