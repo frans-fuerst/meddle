@@ -29,6 +29,17 @@ Under the hood
 Installation
 ------------
 
+Windows:
+
+* Python3: https://www.python.org/download/
+* pyzmq: https://pypi.python.org/pypi/pyzmq/14.4.0
+    c:\Python34\python.exe -m pip install c:\Users\fuerst\Downloads\pyzmq-14.4.0-cp34-none-win_amd64.whl
+    https://github.com/zeromq/pyzmq/downloads
+* PyQt4: http://www.riverbankcomputing.co.uk/software/pyqt/download
+
+
+Linux:
+
 * install zeromq `apt-get install python3-zmq`
 * install PyQt4 `apt-get install python3-pyqt4`
 

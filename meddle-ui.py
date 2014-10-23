@@ -9,10 +9,10 @@ import logging
 import pymeddle
 
 
-class chat_widget(QtGui.QPlainTextEdit):
+class chat_output_widget(QtGui.QPlainTextEdit):
 
     def __init__(self):
-        super(chat_widget, self).__init__()
+        super(chat_output_widget, self).__init__()
         self.setReadOnly(True)
 
     @QtCore.pyqtSlot(str)
@@ -35,10 +35,17 @@ class Example(QtGui.QWidget):
       
     def init_ui(self):
         logging.info("init_ui")
+
+        self._lst_rooms = QtGui.QListWidget()
+
+        for i in range(10):
+            _item1 = QtGui.QListWidgetItem()
+            self._lst_rooms.addItem(_item1)    
+            self._lst_rooms.setItemWidget(_item1, QtGui.QLabel('<channelname>'))
           
         self._lbl_chat_room = QtGui.QLabel('<channelname>')      
         self._txt_message_edit = QtGui.QLineEdit()
-        self._txt_messages = chat_widget()      
+        self._txt_messages = chat_output_widget()      
 
         print(self._txt_message_edit.objectName())
         #print(dir(self._txt_messages))
@@ -47,9 +54,10 @@ class Example(QtGui.QWidget):
         _grid = QtGui.QGridLayout()
         _grid.setSpacing(10)
 
-        _grid.addWidget(self._lbl_chat_room,    0, 0)
-        _grid.addWidget(self._txt_messages,     1, 0, 5, 1)
-        _grid.addWidget(self._txt_message_edit, 6, 0, 2, 1)
+        _grid.addWidget(self._lst_rooms,        1, 0)
+        _grid.addWidget(self._lbl_chat_room,    3, 0)
+        _grid.addWidget(self._txt_messages,     4, 0, 5, 1)
+        _grid.addWidget(self._txt_message_edit, 9, 0, 2, 1)
         
         self.setLayout(_grid) 
         
