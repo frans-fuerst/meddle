@@ -49,6 +49,10 @@ class base:
         _thread.daemon = True
         _thread.start()
 
+    def set_tags(self, tags):
+        for t in tags:
+            self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
+
     def subscriptions(self):
         return self._subscriptions
 
@@ -62,8 +66,8 @@ class base:
         self._rpc_socket = self.context.socket(zmq.REQ)
         self._rpc_socket.connect(_rpc_server_address)
 
-        sub_socket = self.context.socket(zmq.SUB)
-        sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
+        self._sub_socket = self.context.socket(zmq.SUB)
+        self._sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
 
         answer = request(self._rpc_socket, "hello %s" % self._username)
         self._my_id = answer[6:]
@@ -82,7 +86,7 @@ class base:
         self._handler.meddle_on_update()
 
         logging.info("talking on channel '%s'" % self._subscriptions[0])
-        _thread = Thread(target=lambda: self.recieve_messages(sub_socket, self._subscriptions[0]))
+        _thread = Thread(target=lambda: self.recieve_messages(self._subscriptions[0]))
         _thread.daemon = True
         _thread.start()
 
@@ -100,11 +104,17 @@ class base:
         answer = self._rpc_socket.recv_string()
         return answer
 
-    def recieve_messages(self, socket, channel):
-        socket.setsockopt_string(zmq.SUBSCRIBE, channel)
+    def recieve_messages(self, channel):
+        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
+        #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         while True:
-            message = socket.recv_string()
-            name = socket.recv_string()
+            message = self._sub_socket.recv_string()
+            if message.startswith("tag#"):
+                _tag = message
+                _channel = self._sub_socket.recv_string()
+                self._handler.meddle_on_tag_notification(_tag, _channel)
+                continue
+            name = self._sub_socket.recv_string()
             text = message[10:]
             logging.info("incoming message %s: '%s'" % (name, text))
             self._handler.meddle_on_message(channel, name, text)

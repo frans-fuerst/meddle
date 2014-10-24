@@ -18,6 +18,13 @@ def random_string(N):
     return ''.join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
+def handle_tags(socket, channel, text):
+    print((text.replace('.', ' ')).split(' '))
+    _contained_tags = [x for x in (text.replace('.', ' ')).split(' ') if x[0] == '#']
+    logging.info("tags mentioned: %s", _contained_tags)
+    for t in _contained_tags:
+        socket.send_multipart([("tag%s" % t).encode(), channel.encode()])
+
 def main():
     _context = zmq.Context()
     _next_id = 0
@@ -62,6 +69,7 @@ def main():
             _name = _names[_sender_id]
             _channel = _message[8:8 + 10]
             _text = _message[8 + 10 + 1:]
+            handle_tags(_pub_socket, _channel, _text)
             publish(_pub_socket, _name, _channel, _text)
             
         else:

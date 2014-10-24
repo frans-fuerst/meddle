@@ -65,18 +65,26 @@ class MeddleWindow(QtGui.QWidget):
     def _init_ui(self):
         logging.info("init_ui")
 
+        self._txt_tags = QtGui.QLineEdit()
         self._lst_rooms = QtGui.QListWidget()
 
-        _grid = QtGui.QVBoxLayout()
+        _layout = QtGui.QVBoxLayout()
 
-        _grid.addWidget(self._lst_rooms)
+        _layout.addWidget(self._txt_tags)
+        _layout.addWidget(self._lst_rooms)
+
+        self._txt_tags.textChanged.connect(self._on_tags_changed)
         
-        self.setLayout(_grid) 
+        self.setLayout(_layout) 
        
         self.setGeometry(800, 100, 500, 300)
         self.setWindowTitle('meddle:%s' % self.meddle_base.current_username())    
         self.show()
 
+    @QtCore.pyqtSlot(str)
+    def _on_tags_changed(self, text):
+        _tags = [x.lower() for x in text.split(' ') if x.strip() != ""]
+        self.meddle_base.set_tags(_tags)
 
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
@@ -100,6 +108,9 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_add_channel", 
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, _chat_room))
+
+    def meddle_on_tag_notification(self, tag, channel):
+        logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
 
     @QtCore.pyqtSlot(str)
     def _add_channel(self, channel):
