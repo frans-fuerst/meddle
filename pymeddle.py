@@ -9,7 +9,8 @@ import pymeddle
 import logging
 from optparse import OptionParser
 
-def username():
+
+def system_username():
     # todo: format (spaces, etc)
     return getpass.getuser()
 
@@ -17,33 +18,54 @@ def request(socket, text):
     socket.send_string(text)
     return socket.recv_string()
 
-
 class base:
 
     def __init__(self, handler):
+        usage = "usage: %prog [options] <start|stop|restart|quit>"
+        parser = OptionParser(usage=usage)
+
+        parser.add_option("-u", "--username", dest="username", 
+                          metavar="USERNAME",
+                          help="name of the login to be used")
+        parser.add_option("-s", "--server", dest="servername", 
+                          metavar="SERVER-IP",
+                          help="meddle server domain or address")
+        parser.add_option("-p", "--port", dest="serverport", 
+                          metavar="PORT-NR",
+                          help="meddle server tcp port")
+
+        (options, args) = parser.parse_args()
+
         self.context = zmq.Context()
         self._handler = handler
         self._my_id = 0
         self._subscriptions = []
+        self._username = options.username if options.username else system_username()
+        self._servername = options.servername if options.servername else "localhost"
+        self._serverport = options.serverport if options.serverport else 32100
 
-    def connect(self, server, port):
-        _thread = Thread(target=lambda: self.rpc_thread(server, port))
+    def connect(self):
+        _thread = Thread(target=lambda: self.rpc_thread())
         _thread.daemon = True
         _thread.start()
 
     def subscriptions(self):
         return self._subscriptions
 
-    def rpc_thread(self, server, port):
+    def current_username(self):
+        return self._username
 
-        logging.info("connect to rpc tcp://%s:%d" % (server, port))
+    def rpc_thread(self):
+
+        _rpc_server_address = "tcp://%s:%d" % (self._servername, self._serverport)
+        logging.info("connect to %s" % _rpc_server_address)
         self._rpc_socket = self.context.socket(zmq.REQ)
-        self._rpc_socket.connect("tcp://%s:%d" % (server, port))
+        self._rpc_socket.connect(_rpc_server_address)
 
         sub_socket = self.context.socket(zmq.SUB)
-        sub_socket.connect("tcp://%s:%d" % (server, port + 1))
+        sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
 
-        answer = request(self._rpc_socket, "hello %s" % username())
+        answer = request(self._rpc_socket, "hello %s" % self._username)
         self._my_id = answer[6:]
         logging.info("server: calls us '%s'" % self._my_id)
 

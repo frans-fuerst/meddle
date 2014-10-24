@@ -65,7 +65,7 @@ ToDo
 
 - [ ] ZMQ/Multiple threads? Context?
 - [x] Named messages
-- [ ] Qt interface
+- [x] Qt interface
 - [ ] Join rooms
 - [ ] Log messages
 - [ ] Recognize hashtags

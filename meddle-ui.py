@@ -43,6 +43,7 @@ class chat_widget(QtGui.QWidget):
         _grid.addWidget(self._txt_message_edit)
         
         self.setLayout(_grid) 
+        self._txt_message_edit.setFocus()
 
     def on__txt_message_edit_returnPressed(self):
         self._meddle_base.publish(self._channel, self._txt_message_edit.text())
@@ -59,28 +60,21 @@ class MeddleWindow(QtGui.QWidget):
         self.meddle_base = pymeddle.base(self)
         self._chats = {}
         self._init_ui()
-        _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
-        self.meddle_base.connect(_server, 32100)
-        #self._txt_message_edit.setFocus()
+        self.meddle_base.connect()
       
     def _init_ui(self):
         logging.info("init_ui")
 
-        #self._lst_rooms = chat_widget()
         self._lst_rooms = QtGui.QListWidget()
 
-        # for i in range(2):
-        #     self._add_channel("bla %i" % i)
-          
         _grid = QtGui.QVBoxLayout()
-        # _grid.setSpacing(10)
 
         _grid.addWidget(self._lst_rooms)
         
         self.setLayout(_grid) 
        
         self.setGeometry(800, 100, 500, 300)
-        self.setWindowTitle('meddle')    
+        self.setWindowTitle('meddle:%s' % self.meddle_base.current_username())    
         self.show()
 
 
