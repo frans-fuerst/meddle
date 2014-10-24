@@ -85,7 +85,7 @@ class base:
             name = socket.recv_string()
             text = message[10:]
             logging.info("incoming message %s: '%s'" % (name, text))
-            self._handler.meddle_on_message(name, text)
+            self._handler.meddle_on_message(channel, name, text)
 
 
 def main():

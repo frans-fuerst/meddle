@@ -15,7 +15,6 @@ class chat_output_widget(QtGui.QPlainTextEdit):
         super(chat_output_widget, self).__init__()
         self.setReadOnly(True)
 
-    @QtCore.pyqtSlot(str)
     def append_message(self, text):
         logging.info("appendMessage: " + text + str(type(text)))
         self.appendPlainText(text)
@@ -23,12 +22,14 @@ class chat_output_widget(QtGui.QPlainTextEdit):
 
 
 class chat_widget(QtGui.QWidget):
-    def __init__(self):
+    def __init__(self, meddle_base, channel):
         super(chat_widget, self).__init__()
+        self._channel = channel
+        self._meddle_base = meddle_base
         self.init_ui()
 
     def init_ui(self):
-        self._lbl_chat_room = QtGui.QLabel('<channelname>')      
+        self._lbl_chat_room = QtGui.QLabel(self._channel)      
         self._txt_message_edit = QtGui.QLineEdit()
         self._txt_messages = chat_output_widget()      
 
@@ -44,37 +45,35 @@ class chat_widget(QtGui.QWidget):
         self.setLayout(_grid) 
 
     def on__txt_message_edit_returnPressed(self):
-        #self.meddle_base.publish("todo", self._txt_message_edit.text())
+        self._meddle_base.publish(self._channel, self._txt_message_edit.text())
         self._txt_message_edit.setText("")
-        pass
 
+    def on_message(self, name, text):
+        self._txt_messages.append_message("%s: %s" % (name, text))
 
 class MeddleWindow(QtGui.QWidget):
     
     def __init__(self):
         super(MeddleWindow, self).__init__()
         
-        self.init_ui()
         self.meddle_base = pymeddle.base(self)
+        self._chats = {}
+        self._init_ui()
         _server = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
         self.meddle_base.connect(_server, 32100)
         #self._txt_message_edit.setFocus()
       
-    def init_ui(self):
+    def _init_ui(self):
         logging.info("init_ui")
 
         #self._lst_rooms = chat_widget()
         self._lst_rooms = QtGui.QListWidget()
 
-        for i in range(2):
-            _item1 = QtGui.QListWidgetItem()
-            _item1.setSizeHint(QtCore.QSize(100,200))
-
-            self._lst_rooms.addItem(_item1)    
-            self._lst_rooms.setItemWidget(_item1, chat_widget())
+        # for i in range(2):
+        #     self._add_channel("bla %i" % i)
           
         _grid = QtGui.QVBoxLayout()
-        #_grid.setSpacing(10)
+        # _grid.setSpacing(10)
 
         _grid.addWidget(self._lst_rooms)
         
@@ -89,14 +88,35 @@ class MeddleWindow(QtGui.QWidget):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
 
-    def meddle_on_message(self, name, text):
+    @QtCore.pyqtSlot(str, str, str)
+    def _on_message(self, channel, name, text):
+        self._chats[channel].on_message(name, text)
+
+    def meddle_on_message(self, channel, name, text):
         QtCore.QMetaObject.invokeMethod(
-                self._txt_messages, "append_message", 
+                self, "_on_message", 
                 QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, "%s: %s" % (name,text)))
+                QtCore.Q_ARG(str, channel),
+                QtCore.Q_ARG(str, name),
+                QtCore.Q_ARG(str, text))
 
     def meddle_on_update(self):
         _chat_room = self.meddle_base.subscriptions()[0]
+        QtCore.QMetaObject.invokeMethod(
+                self, "_add_channel", 
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(str, _chat_room))
+
+    @QtCore.pyqtSlot(str)
+    def _add_channel(self, channel):
+        _item1 = QtGui.QListWidgetItem()
+        _item1.setSizeHint(QtCore.QSize(100,200))
+
+        self._lst_rooms.addItem(_item1)    
+        _chat_window = chat_widget(self.meddle_base, channel)
+        self._chats[channel] = _chat_window
+        self._lst_rooms.setItemWidget(_item1, _chat_window)
+
 
 def main():
     logging.info("main")
