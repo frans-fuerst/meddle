@@ -41,7 +41,7 @@ class base:
         self._my_id = 0
         self._subscriptions = []
         self._username = options.username if options.username else system_username()
-        self._servername = options.servername if options.servername else "localhost"
+        self._servername = options.servername if options.servername else "scibernetic.de"
         self._serverport = options.serverport if options.serverport else 32100
 
     def connect(self):
@@ -121,7 +121,8 @@ class base:
 
 
 def main():
-    pass   
+    print("this is the pymeddle library and does not do anything by it's own."
+          "run meddle.py or meddle-ui.py or start a server with meddle-server.py")
 
 if __name__ == "__main__":
     main()

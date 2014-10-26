@@ -22,6 +22,7 @@ class chat_output_widget(QtGui.QPlainTextEdit):
 
 
 class chat_widget(QtGui.QWidget):
+    
     def __init__(self, meddle_base, channel):
         super(chat_widget, self).__init__()
         self._channel = channel
