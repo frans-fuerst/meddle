@@ -77,6 +77,10 @@ def main():
             print(_ids.keys())
             _rpc_socket.send_string(json.dumps(list(_ids.keys())))
 
+        elif _message.startswith("ping"):
+            # todo: handle users
+            _rpc_socket.send_string('ok')
+
         elif _message.startswith("publish "):
             _sender_id = int(_rpc_socket.recv_string())
             _rpc_socket.send_string("ok")

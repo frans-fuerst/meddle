@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from threading import Thread
 import sys
 from PyQt4 import QtGui, QtCore, Qt
 import logging
@@ -79,9 +78,7 @@ class MeddleWindow(QtGui.QWidget):
         self.setLayout(_layout) 
        
         self.setGeometry(800, 100, 500, 300)
-        self.setWindowTitle('meddle:%s:%s' % (
-            self.meddle_base.current_username(), 
-            self.meddle_base.get_servername()))    
+        self._update_window_title()
         self.show()
 
     @QtCore.pyqtSlot(str)
@@ -112,10 +109,28 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_add_channel", 
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, _chat_room))
+    
+    def meddle_on_connection_established(self, status):
+        logging.info("connection status changed: %s " % status)
+        self._update_window_title()
 
     def meddle_on_tag_notification(self, tag, channel):
         logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
+        
+    def _update_window_title(self):
+        _title = 'meddle:%s:%s : %s' % (
+            self.meddle_base.current_username(), 
+            self.meddle_base.get_servername(),
+            "connected" if self.meddle_base.get_connection_status() else "DISCONNECTED")
+        QtCore.QMetaObject.invokeMethod(
+                self, "_set_window_title", 
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(str, _title))
 
+    @QtCore.pyqtSlot(str)
+    def _set_window_title(self, title):
+        self.setWindowTitle(title)
+    
     @QtCore.pyqtSlot(str)
     def _add_channel(self, channel):
         _item1 = QtGui.QListWidgetItem()

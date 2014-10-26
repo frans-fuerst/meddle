@@ -69,7 +69,7 @@ ToDo
 - [x] Named messages
 - [x] Qt interface
 - [x] Recognize hashtags
-- [ ] list users
+- [x] list users
 - [ ] config file
 - [ ] Watchdog / connection status
 - [ ] unsubscribe hashtags
@@ -79,9 +79,12 @@ ToDo
 - [ ] Search in logs
 - [ ] Leave room
 - [ ] Multi room
+- [ ] setup file
 
 === after public release
 - [ ] Send files
+- [ ] WebClient (to circumvent http/proxy restrictions)
+- [ ] Android Client
 - [ ] encryption / authentication
 
 

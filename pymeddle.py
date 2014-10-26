@@ -3,21 +3,18 @@
 
 import zmq
 import getpass
-from threading import Thread
+from threading import Thread, Lock
 import sys
 import pymeddle
 import logging
 from optparse import OptionParser
 import json
+import time
 
 
 def system_username():
     # todo: format (spaces, etc)
     return getpass.getuser()
-
-def request(socket, text):
-    socket.send_string(text)
-    return socket.recv_string()
 
 class base:
 
@@ -45,8 +42,38 @@ class base:
         self._servername = options.servername if options.servername else "scibernetic.de"
         self._serverport = options.serverport if options.serverport else 32100
         self._users = []
+        self._mutex_rpc_socket = Lock()
+        self._connection_status = None
+                
+    def request(self, text):
+        with self._mutex_rpc_socket:
+            self._rpc_socket.send_string(text)
+            
+            poller = zmq.Poller()
+            poller.register(self._rpc_socket, zmq.POLLIN)
+            while poller.poll(1000) == []:
+                logging.warn("timeout!")
+                self._set_connection_status(False)
+                
+            self._set_connection_status(True)
+            return self._rpc_socket.recv_string()
+    
+   
+    def publish(self, channel, text):
+        with self._mutex_rpc_socket:
+            self._rpc_socket.send_multipart(
+                [("publish %s %s" % (self._subscriptions[0], text)).encode(),
+                 self._my_id.encode(),])
+            answer = self._rpc_socket.recv_string()
+        return answer
+    
+    def _set_connection_status(self, status):
+        if status != self._connection_status:
+            self._connection_status = status
+            self._handler.meddle_on_connection_established(status)
 
     def connect(self):
+        self._set_connection_status(False)
         _thread = Thread(target=lambda: self.rpc_thread())
         _thread.daemon = True
         _thread.start()
@@ -57,7 +84,10 @@ class base:
             
     def get_users(self):
         return self._users
-
+    
+    def get_connection_status(self):
+        return bool(self._connection_status)
+    
     def get_servername(self):
         return self._servername
         
@@ -77,19 +107,19 @@ class base:
         self._sub_socket = self.context.socket(zmq.SUB)
         self._sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
 
-        answer = request(self._rpc_socket, "hello %s" % self._username)
+        answer = self.request("hello %s" % self._username)
         self._my_id = answer[6:]
         logging.info("server: calls us '%s'" % self._my_id)
 
-        answer = request(self._rpc_socket, "get_channels")
+        answer = self.request("get_channels")
         _channels = answer.split()
         logging.info("channels: %s" % _channels)
 
-        answer = request(self._rpc_socket, "get_users")
+        answer = self.request("get_users")
         self._users = json.loads(answer)
 
         if _channels == []:
-            answer = request(self._rpc_socket, "create_channel bob")
+            answer = self.request("create_channel bob")
             self._subscriptions.append(answer)
         else:
             self._subscriptions.append(_channels[0])
@@ -100,20 +130,11 @@ class base:
         _thread = Thread(target=lambda: self.recieve_messages(self._subscriptions[0]))
         _thread.daemon = True
         _thread.start()
-
+        
         while True:
-            text = sys.stdin.readline().strip('\n')
-            if text in ('quit', 'exit'):
-                sys.exit(0)
-            if text.strip() == "":
-                continue
-            answer = self.publish(self._subscriptions[0], text)
-
-    def publish(self, channel, text):
-        self._rpc_socket.send_multipart([("publish %s %s" % (self._subscriptions[0], text)).encode(),
-                                self._my_id.encode(),])
-        answer = self._rpc_socket.recv_string()
-        return answer
+            time.sleep(1)
+            answer = self.request('ping')
+            logging.info("ping: " + answer )
 
     def recieve_messages(self, channel):
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
