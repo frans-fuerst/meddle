@@ -112,13 +112,12 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(str, name),
                 QtCore.Q_ARG(str, text))
 
-    def meddle_on_update(self):
-        _chat_room = self.meddle_base.subscriptions()[0]
+    def meddle_on_joined_channel(self, channel):
         self._update_user_list(self.meddle_base.get_users())
         QtCore.QMetaObject.invokeMethod(
                 self, "_add_channel", 
                 QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, _chat_room))
+                QtCore.Q_ARG(str, channel))
     
     def meddle_on_connection_established(self, status):
         logging.info("connection status changed: %s " % status)

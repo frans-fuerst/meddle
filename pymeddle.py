@@ -106,28 +106,31 @@ class base:
 
         self._sub_socket = self.context.socket(zmq.SUB)
         self._sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
+        
+        ## refactor! - should all go away
+        if True:
 
-        answer = self.request("hello %s" % self._username)
-        self._my_id = answer[6:]
-        logging.info("server: calls us '%s'" % self._my_id)
-
-        answer = self.request("get_channels")
-        _channels = answer.split()
-        logging.info("channels: %s" % _channels)
-
-        answer = self.request("get_users")
-        self._users = json.loads(answer)
-
-        if _channels == []:
-            answer = self.request("create_channel bob")
-            self._subscriptions.append(answer)
-        else:
-            self._subscriptions.append(_channels[0])
-
-        self._handler.meddle_on_update()
-
-        logging.info("talking on channel '%s'" % self._subscriptions[0])
-        _thread = Thread(target=lambda: self.recieve_messages(self._subscriptions[0]))
+            answer = self.request("hello %s" % self._username)
+            self._my_id = answer[6:]
+            logging.info("server: calls us '%s'" % self._my_id)
+    
+            answer = self.request("get_channels")
+            _channels = answer.split()
+            logging.info("channels: %s" % _channels)
+    
+            answer = self.request("get_users")
+            self._users = json.loads(answer)
+    
+            if _channels == []:
+                answer = self.request("create_channel bob")
+                _channel_to_join = answer
+            else:
+                _channel_to_join = _channels[0]
+                
+            self._join_channel(_channel_to_join)
+    
+            
+        _thread = Thread(target=lambda: self._recieve_messages())
         _thread.daemon = True
         _thread.start()
         
@@ -136,8 +139,13 @@ class base:
             answer = self.request('ping')
             # logging.info("ping: " + answer )
 
-    def recieve_messages(self, channel):
+    def _join_channel(self, channel):
+        self._subscriptions.append(channel)
+        self._handler.meddle_on_joined_channel(channel)
+        logging.info("talking on channel '%s'" % channel)
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
+
+    def _recieve_messages(self):
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         while True:
@@ -150,10 +158,11 @@ class base:
                 _extra_info = self._sub_socket.recv_string()
                 self._handler.meddle_on_user_update(json.loads(_extra_info))
             else:
-                name = self._sub_socket.recv_string()
-                text = message[10:]
-                logging.info("incoming message %s: '%s'" % (name, text))
-                self._handler.meddle_on_message(channel, name, text)
+                _channel = message[:10]
+                _name = self._sub_socket.recv_string()
+                _text = message[10:]
+                logging.info("incoming message on %s %s: '%s'" % (_channel, _name, _text))
+                self._handler.meddle_on_message(_channel, _name, _text)
 
 
 def main():
