@@ -134,10 +134,11 @@ class base:
         while True:
             time.sleep(1)
             answer = self.request('ping')
-            logging.info("ping: " + answer )
+            # logging.info("ping: " + answer )
 
     def recieve_messages(self, channel):
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
+        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         while True:
             message = self._sub_socket.recv_string()
@@ -145,11 +146,14 @@ class base:
                 _tag = message
                 _channel = self._sub_socket.recv_string()
                 self._handler.meddle_on_tag_notification(_tag, _channel)
-                continue
-            name = self._sub_socket.recv_string()
-            text = message[10:]
-            logging.info("incoming message %s: '%s'" % (name, text))
-            self._handler.meddle_on_message(channel, name, text)
+            elif message.startswith("user_update"):
+                _extra_info = self._sub_socket.recv_string()
+                self._handler.meddle_on_user_update(json.loads(_extra_info))
+            else:
+                name = self._sub_socket.recv_string()
+                text = message[10:]
+                logging.info("incoming message %s: '%s'" % (name, text))
+                self._handler.meddle_on_message(channel, name, text)
 
 
 def main():

@@ -55,6 +55,7 @@ def main():
         if _message.startswith("hello "):
             _name = _message[6:].strip()
             logging.debug("using name '%s'" % _name)
+            _new_user = False
             if _name in _ids:
                 _id = _ids[_name]
             else:
@@ -62,7 +63,11 @@ def main():
                 _next_id += 1
                 _names[_id] = _name
                 _ids[_name] = _id
+                _new_user = True
             _rpc_socket.send_string("hello %d" % _id)
+            if _new_user:
+                _pub_socket.send_multipart(["user_update".encode(), 
+                                            json.dumps(list(_ids.keys())).encode()]) # todo: update-info
 
         elif _message.startswith("create_channel "):
             _channel_name = random_string(10)

@@ -44,6 +44,12 @@ class chat_widget(QtGui.QWidget):
         
         self.setLayout(_grid) 
         self._txt_message_edit.setFocus()
+        
+        p = self.palette()
+        p.setColor(self.backgroundRole(), Qt.QColor(100,100,0))
+        self.setPalette(p)
+        self.setAutoFillBackground(True) 
+        
 
     def on__txt_message_edit_returnPressed(self):
         self._meddle_base.publish(self._channel, self._txt_message_edit.text())
@@ -66,18 +72,22 @@ class MeddleWindow(QtGui.QWidget):
         logging.info("init_ui")
 
         self._txt_tags = QtGui.QLineEdit()
+        self._lst_users = QtGui.QListWidget()
+        self._lst_users.setMaximumSize(QtCore.QSize(200,100))
+        
         self._lst_rooms = QtGui.QListWidget()
-
+        
         _layout = QtGui.QVBoxLayout()
 
         _layout.addWidget(self._txt_tags)
+        _layout.addWidget(self._lst_users)
         _layout.addWidget(self._lst_rooms)
 
         self._txt_tags.textChanged.connect(self._on_tags_changed)
         
         self.setLayout(_layout) 
        
-        self.setGeometry(800, 100, 500, 300)
+        self.setGeometry(800, 100, 500, 500)
         self._update_window_title()
         self.show()
 
@@ -104,7 +114,7 @@ class MeddleWindow(QtGui.QWidget):
 
     def meddle_on_update(self):
         _chat_room = self.meddle_base.subscriptions()[0]
-        logging.info("users: %s" % self.meddle_base.get_users())
+        self._update_user_list(self.meddle_base.get_users())
         QtCore.QMetaObject.invokeMethod(
                 self, "_add_channel", 
                 QtCore.Qt.QueuedConnection,
@@ -116,6 +126,9 @@ class MeddleWindow(QtGui.QWidget):
 
     def meddle_on_tag_notification(self, tag, channel):
         logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
+        
+    def meddle_on_user_update(self, users):
+        self._update_user_list(users)
         
     def _update_window_title(self):
         _title = 'meddle:%s:%s : %s' % (
@@ -130,6 +143,12 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(str)
     def _set_window_title(self, title):
         self.setWindowTitle(title)
+        
+    def _update_user_list(self, users):
+        self._lst_users.clear()
+        logging.info("users: %s" % users)
+        for u in users:
+            self._lst_users.addItem(u)
     
     @QtCore.pyqtSlot(str)
     def _add_channel(self, channel):
