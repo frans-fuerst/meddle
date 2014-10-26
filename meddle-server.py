@@ -5,6 +5,7 @@ import zmq
 import random
 import string
 import logging
+import json
 
 
 def publish(socket, participant, channel, text):
@@ -28,7 +29,11 @@ def handle_tags(socket, channel, text):
 def main():
     _context = zmq.Context()
     _next_id = 0
-    _names = {}
+
+    # todo: should be one structure
+    _names = {}  # id   -> name
+    _ids = {}    # name -> id
+
     _channels = {}
     _port_rpc = 32100
     _port_pub = 32101
@@ -50,11 +55,16 @@ def main():
         if _message.startswith("hello "):
             _name = _message[6:].strip()
             logging.debug("using name '%s'" % _name)
-            _names[_next_id] = _name
-            _rpc_socket.send_string("hello %d" % _next_id)
-            _next_id += 1
+            if _name in _ids:
+                _id = _ids[_name]
+            else:
+                _id = _next_id
+                _next_id += 1
+                _names[_id] = _name
+                _ids[_name] = _id
+            _rpc_socket.send_string("hello %d" % _id)
 
-        elif _message.startswith("createChannel "):
+        elif _message.startswith("create_channel "):
             _channel_name = random_string(10)
             # todo - check collisions
             _rpc_socket.send_string(_channel_name)
@@ -62,6 +72,10 @@ def main():
 
         elif _message.startswith("get_channels"):
             _rpc_socket.send_string(" ".join(_channels.keys()))
+
+        elif _message.startswith("get_users"):
+            print(_ids.keys())
+            _rpc_socket.send_string(json.dumps(list(_ids.keys())))
 
         elif _message.startswith("publish "):
             _sender_id = int(_rpc_socket.recv_string())

@@ -79,7 +79,9 @@ class MeddleWindow(QtGui.QWidget):
         self.setLayout(_layout) 
        
         self.setGeometry(800, 100, 500, 300)
-        self.setWindowTitle('meddle:%s' % self.meddle_base.current_username())    
+        self.setWindowTitle('meddle:%s:%s' % (
+            self.meddle_base.current_username(), 
+            self.meddle_base.get_servername()))    
         self.show()
 
     @QtCore.pyqtSlot(str)
@@ -105,6 +107,7 @@ class MeddleWindow(QtGui.QWidget):
 
     def meddle_on_update(self):
         _chat_room = self.meddle_base.subscriptions()[0]
+        logging.info("users: %s" % self.meddle_base.get_users())
         QtCore.QMetaObject.invokeMethod(
                 self, "_add_channel", 
                 QtCore.Qt.QueuedConnection,

@@ -8,6 +8,7 @@ import sys
 import pymeddle
 import logging
 from optparse import OptionParser
+import json
 
 
 def system_username():
@@ -43,6 +44,7 @@ class base:
         self._username = options.username if options.username else system_username()
         self._servername = options.servername if options.servername else "scibernetic.de"
         self._serverport = options.serverport if options.serverport else 32100
+        self._users = []
 
     def connect(self):
         _thread = Thread(target=lambda: self.rpc_thread())
@@ -52,7 +54,13 @@ class base:
     def set_tags(self, tags):
         for t in tags:
             self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
+            
+    def get_users(self):
+        return self._users
 
+    def get_servername(self):
+        return self._servername
+        
     def subscriptions(self):
         return self._subscriptions
 
@@ -77,8 +85,11 @@ class base:
         _channels = answer.split()
         logging.info("channels: %s" % _channels)
 
+        answer = request(self._rpc_socket, "get_users")
+        self._users = json.loads(answer)
+
         if _channels == []:
-            answer = request(self._rpc_socket, "createChannel bob")
+            answer = request(self._rpc_socket, "create_channel bob")
             self._subscriptions.append(answer)
         else:
             self._subscriptions.append(_channels[0])

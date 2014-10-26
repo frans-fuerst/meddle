@@ -32,6 +32,7 @@ Installation
 Windows:
 
 * Python3: https://www.python.org/download/
+* json
 * pyzmq: https://pypi.python.org/pypi/pyzmq/14.4.0
     c:\Python34\python.exe -m pip install c:\Users\fuerst\Downloads\pyzmq-14.4.0-cp34-none-win_amd64.whl
     https://github.com/zeromq/pyzmq/downloads
@@ -63,18 +64,25 @@ Sequence
 ToDo
 ----
 
+=== before public release
 - [ ] ZMQ/Multiple threads? Context?
 - [x] Named messages
 - [x] Qt interface
+- [x] Recognize hashtags
+- [ ] list users
+- [ ] config file
+- [ ] Watchdog / connection status
+- [ ] unsubscribe hashtags
 - [ ] Join rooms
-- [ ] Log messages
-- [ ] Recognize hashtags
+- [ ] Log messages (+timestamp)
 - [ ] Invite on hashtags
 - [ ] Search in logs
 - [ ] Leave room
 - [ ] Multi room
-- [ ] Watchdog
+
+=== after public release
 - [ ] Send files
+- [ ] encryption / authentication
 
 
 Architecture:
