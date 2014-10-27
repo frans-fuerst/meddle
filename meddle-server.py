@@ -39,12 +39,19 @@ class user:
 class user_container:
 
     def __init__(self):
+        #[item for item in a if item[0] == 1]
+        #[(id, item) for id, item in a.items() if item[1] == 'user2']
+        # users (id, name, user)
         self._next_id = 0
+        self._users_online = {}
+        self._associated_ids = {}
+        
         self._ids = {}    # name -> id
         self._names = {}  # id   -> name, user
 
     def find_or_create_name(self, name):
         _new_user = False
+        _result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
         if name in self._ids:
             _id = self._ids[name]
         else:
