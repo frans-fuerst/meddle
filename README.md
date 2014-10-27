@@ -114,5 +114,5 @@ Client:
 Reference
 ---------
 
-Nice Qt4 Tutorial: http://zetcode.com/gui/pyqt4/
-
+* Nice Qt4 Tutorial: http://zetcode.com/gui/pyqt4/
+* Unicode with pyzmq: http://zeromq.github.io/pyzmq/unicode.html

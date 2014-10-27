@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+if sys.version_info < (3,1,):
+    print("please use only Python 3.1 an up")
+    sys.exit(-1)
+
 import zmq
 import getpass
 from threading import Thread, Lock
-import sys
 import pymeddle
 import logging
 from optparse import OptionParser
@@ -22,13 +26,13 @@ class base:
         usage = "usage: %prog [options] <start|stop|restart|quit>"
         parser = OptionParser(usage=usage)
 
-        parser.add_option("-u", "--username", dest="username", 
+        parser.add_option("-u", "--username", dest="username",
                           metavar="USERNAME",
                           help="name of the login to be used")
-        parser.add_option("-s", "--server", dest="servername", 
+        parser.add_option("-s", "--server", dest="servername",
                           metavar="SERVER-IP",
                           help="meddle server domain or address")
-        parser.add_option("-p", "--port", dest="serverport", 
+        parser.add_option("-p", "--port", dest="serverport",
                           metavar="PORT-NR",
                           help="meddle server tcp port")
 
@@ -44,21 +48,21 @@ class base:
         self._users = []
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
-                
+
     def request(self, text):
         with self._mutex_rpc_socket:
             self._rpc_socket.send_string(text)
-            
+
             poller = zmq.Poller()
             poller.register(self._rpc_socket, zmq.POLLIN)
             while poller.poll(1000) == []:
                 logging.warn("timeout!")
                 self._set_connection_status(False)
-                
+
             self._set_connection_status(True)
             return self._rpc_socket.recv_string()
-    
-   
+
+
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
             self._rpc_socket.send_multipart(
@@ -66,7 +70,7 @@ class base:
                  self._my_id.encode(),])
             answer = self._rpc_socket.recv_string()
         return answer
-    
+
     def _set_connection_status(self, status):
         if status != self._connection_status:
             self._connection_status = status
@@ -81,16 +85,16 @@ class base:
     def set_tags(self, tags):
         for t in tags:
             self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
-            
+
     def get_users(self):
         return self._users
-    
+
     def get_connection_status(self):
         return bool(self._connection_status)
-    
+
     def get_servername(self):
         return self._servername
-        
+
     def subscriptions(self):
         return self._subscriptions
 
@@ -106,34 +110,34 @@ class base:
 
         self._sub_socket = self.context.socket(zmq.SUB)
         self._sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
-        
+
         ## refactor! - should all go away
         if True:
 
             answer = self.request("hello %s" % self._username)
             self._my_id = answer[6:]
             logging.info("server: calls us '%s'" % self._my_id)
-    
+
             answer = self.request("get_channels")
             _channels = answer.split()
             logging.info("channels: %s" % _channels)
-    
+
             answer = self.request("get_users")
             self._users = json.loads(answer)
-    
+
             if _channels == []:
                 answer = self.request("create_channel bob")
                 _channel_to_join = answer
             else:
                 _channel_to_join = _channels[0]
-                
+
             self._join_channel(_channel_to_join)
-    
-            
+
+
         _thread = Thread(target=lambda: self._recieve_messages())
         _thread.daemon = True
         _thread.start()
-        
+
         while True:
             time.sleep(1)
             answer = self.request('ping')
