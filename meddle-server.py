@@ -110,61 +110,65 @@ def main():
 
     while True:
 
-        dead_users = _users.find_dead()
-        print([_users.find_id(i)[0] for i in dead_users])
-        _users.remove(dead_users)
-        publish_user_list(_pub_socket, _users)
-
-        if _poller.poll(3000) == []:
-            logging.debug("waiting..")
-            continue
-        
-        _message = _rpc_socket.recv_string()
-        logging.debug("got '%s' (%s)" % (_message, type(_message)))
-
-        if _message.startswith("hello "):
-            _name = _message[6:].strip()
-            logging.debug("using name '%s'" % _name)
-            _is_new, _id, _user = _users.find_or_create_name(_name)
-
-            _rpc_socket.send_string("hello %d" % _id)
-            if _is_new:
-                 # todo: send only update-info
-                publish_user_list(_pub_socket, _users)
-
-        elif _message.startswith("create_channel "):
-            _channel_name = random_string(10)
-            # todo - check collisions
-            _rpc_socket.send_string(_channel_name)
-            _channels[_channel_name] = None
-
-        elif _message.startswith("get_channels"):
-            _rpc_socket.send_string(" ".join(_channels.keys()))
-
-        elif _message.startswith("get_users"):
-            print(_users.names())
-            _rpc_socket.send_string(json.dumps(_users.names()))
-
-        elif _message.startswith("ping"):
-            # todo: handle users
-            _sender_id = int(_rpc_socket.recv_string())
-            _users.refresh(_sender_id)
-            _rpc_socket.send_string('ok')
-
-        elif _message.startswith("publish "):
-            _sender_id = int(_rpc_socket.recv_string())
-            _rpc_socket.send_string("ok")
-            _name, _ = _users.find_id(_sender_id)
-            # todo: handle wrong user
-            _channel = _message[8:8 + 10]
-            _text = _message[8 + 10 + 1:]
-            handle_tags(_pub_socket, _channel, _text)
-            publish(_pub_socket, _name, _channel, _text)
-
-        else:
-            _rpc_socket.send_string('nok')
-
-
+        try:
+            dead_users = _users.find_dead()
+            print([_users.find_id(i)[0] for i in dead_users])
+            _users.remove(dead_users)
+            publish_user_list(_pub_socket, _users)
+    
+            if _poller.poll(3000) == []:
+                logging.debug("waiting..")
+                continue
+            
+            _message = _rpc_socket.recv_string()
+            logging.debug("got '%s' (%s)" % (_message, type(_message)))
+    
+            if _message.startswith("hello "):
+                _name = _message[6:].strip()
+                logging.debug("using name '%s'" % _name)
+                _is_new, _id, _user = _users.find_or_create_name(_name)
+    
+                _rpc_socket.send_string("hello %d" % _id)
+                if _is_new:
+                     # todo: send only update-info
+                    publish_user_list(_pub_socket, _users)
+    
+            elif _message.startswith("create_channel "):
+                _channel_name = random_string(10)
+                # todo - check collisions
+                _rpc_socket.send_string(_channel_name)
+                _channels[_channel_name] = None
+    
+            elif _message.startswith("get_channels"):
+                _rpc_socket.send_string(" ".join(_channels.keys()))
+    
+            elif _message.startswith("get_users"):
+                print(_users.names())
+                _rpc_socket.send_string(json.dumps(_users.names()))
+    
+            elif _message.startswith("ping"):
+                # todo: handle users
+                _sender_id = int(_rpc_socket.recv_string())
+                _users.refresh(_sender_id)
+                _rpc_socket.send_string('ok')
+    
+            elif _message.startswith("publish "):
+                _sender_id = int(_rpc_socket.recv_string())
+                _rpc_socket.send_string("ok")
+                _name, _ = _users.find_id(_sender_id)
+                # todo: handle wrong user
+                _channel = _message[8:8 + 10]
+                _text = _message[8 + 10 + 1:]
+                handle_tags(_pub_socket, _channel, _text)
+                publish(_pub_socket, _name, _channel, _text)
+    
+            else:
+                _rpc_socket.send_string('nok')
+                
+        except Exception as ex:
+            logging.error("something bad happened: %s", ex)
+            time.sleep(3)
+            
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s (%(thread)d) %(levelname)s %(message)s",
