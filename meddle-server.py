@@ -25,14 +25,43 @@ def handle_tags(socket, channel, text):
     logging.info("tags mentioned: %s", _contained_tags)
     for t in _contained_tags:
         socket.send_multipart([("tag%s" % t).encode(), channel.encode()])
+        
+class user:
+    def __init__(self):
+        self._last_ping = None
+        
+class user_container:
 
+    def __init__(self):
+        self._next_id = 0
+        self._ids = {}    # name -> id
+        self._names = {}  # id   -> name, user
+
+    def find_or_create_name(self, name):
+        _new_user = False
+        if name in self._ids:
+            _id = self._ids[name]
+        else:
+            _id = self._next_id
+            self._next_id += 1
+            self._names[_id] = (name, user())
+            self._ids[_name] = _id
+            _new_user = True
+        _, _user = self._names[_id]
+        return (_new_user, _id, _user)
+
+    def names(self):
+        return list(self._ids.keys())
+
+    def find_id(self, id):
+        if id in self._names:
+            return self._names
+        return None, None
+    
+    
 def main():
+    _users = user_container()
     _context = zmq.Context()
-    _next_id = 0
-
-    # todo: should be one structure
-    _names = {}  # id   -> name
-    _ids = {}    # name -> id
 
     _channels = {}
     _port_rpc = 32100
@@ -44,30 +73,29 @@ def main():
     _pub_socket = _context.socket(zmq.PUB)
     _pub_socket.bind("tcp://*:%d" % _port_pub)
 
+    _poller = zmq.Poller()
+    _poller.register(_rpc_socket, zmq.POLLIN)
+
     logging.info("meddle server listening on port %d, sending on port %d" %
                     (_port_rpc, _port_pub))
 
     while True:
-        logging.debug("waiting..")
+        
+        while _poller.poll(1000) == []:
+            logging.debug("waiting..")
         _message = _rpc_socket.recv_string()
         logging.debug("got '%s' (%s)" % (_message, type(_message)))
 
         if _message.startswith("hello "):
             _name = _message[6:].strip()
             logging.debug("using name '%s'" % _name)
-            _new_user = False
-            if _name in _ids:
-                _id = _ids[_name]
-            else:
-                _id = _next_id
-                _next_id += 1
-                _names[_id] = _name
-                _ids[_name] = _id
-                _new_user = True
+            _is_new, _id, _user = find_or_create_name(_name)
+            
             _rpc_socket.send_string("hello %d" % _id)
-            if _new_user:
-                _pub_socket.send_multipart(["user_update".encode(), 
-                                            json.dumps(list(_ids.keys())).encode()]) # todo: update-info
+            if _is_new:
+                _pub_socket.send_multipart(
+                    ["user_update".encode(), 
+                     json.dumps(self._users.names()).encode()]) # todo: update-info
 
         elif _message.startswith("create_channel "):
             _channel_name = random_string(10)
@@ -79,8 +107,8 @@ def main():
             _rpc_socket.send_string(" ".join(_channels.keys()))
 
         elif _message.startswith("get_users"):
-            print(_ids.keys())
-            _rpc_socket.send_string(json.dumps(list(_ids.keys())))
+            print(self._users.names())
+            _rpc_socket.send_string(json.dumps(self._users.names()))
 
         elif _message.startswith("ping"):
             # todo: handle users
@@ -89,7 +117,8 @@ def main():
         elif _message.startswith("publish "):
             _sender_id = int(_rpc_socket.recv_string())
             _rpc_socket.send_string("ok")
-            _name = _names[_sender_id]
+            _name, _ = self._users.find_id[_sender_id]
+            # todo: handle wrong user
             _channel = _message[8:8 + 10]
             _text = _message[8 + 10 + 1:]
             handle_tags(_pub_socket, _channel, _text)
@@ -112,5 +141,3 @@ if __name__ == "__main__":
     logging.addLevelName(logging.NOTSET,   "(NA)")
     
     main()
-
-

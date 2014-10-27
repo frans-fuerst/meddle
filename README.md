@@ -66,6 +66,9 @@ ToDo
 
 === before public release
 - [ ] ZMQ/Multiple threads? Context?
+- [ ] refactor: multipart-message concept
+- [ ] refactor: server: one thread
+- [ ] refactor: client instant invoke
 - [x] Named messages
 - [x] Qt interface
 - [x] Recognize hashtags
