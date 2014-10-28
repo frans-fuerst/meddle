@@ -21,7 +21,7 @@ class chat_output_widget(QtGui.QPlainTextEdit):
 
 
 class chat_widget(QtGui.QWidget):
-    
+
     def __init__(self, meddle_base, channel):
         super(chat_widget, self).__init__()
         self._channel = channel
@@ -29,9 +29,9 @@ class chat_widget(QtGui.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self._lbl_chat_room = QtGui.QLabel(self._channel)      
+        self._lbl_chat_room = QtGui.QLabel(self._channel)
         self._txt_message_edit = QtGui.QLineEdit()
-        self._txt_messages = chat_output_widget()      
+        self._txt_messages = chat_output_widget()
 
         self._txt_message_edit.returnPressed.connect(self.on__txt_message_edit_returnPressed)
 
@@ -41,15 +41,15 @@ class chat_widget(QtGui.QWidget):
         _grid.addWidget(self._lbl_chat_room)
         _grid.addWidget(self._txt_messages)
         _grid.addWidget(self._txt_message_edit)
-        
-        self.setLayout(_grid) 
+
+        self.setLayout(_grid)
         self._txt_message_edit.setFocus()
-        
+
         p = self.palette()
         p.setColor(self.backgroundRole(), Qt.QColor(100,100,0))
         self.setPalette(p)
-        self.setAutoFillBackground(True) 
-        
+        self.setAutoFillBackground(True)
+
 
     def on__txt_message_edit_returnPressed(self):
         self._meddle_base.publish(self._channel, self._txt_message_edit.text())
@@ -59,24 +59,24 @@ class chat_widget(QtGui.QWidget):
         self._txt_messages.append_message("%s: %s" % (name, text))
 
 class MeddleWindow(QtGui.QWidget):
-    
+
     def __init__(self):
         super(MeddleWindow, self).__init__()
-        
+
         self.meddle_base = pymeddle.base(self)
         self._chats = {}
         self._init_ui()
         self.meddle_base.connect()
-      
+
     def _init_ui(self):
         logging.info("init_ui")
 
         self._txt_tags = QtGui.QLineEdit()
         self._lst_users = QtGui.QListWidget()
         self._lst_users.setMaximumSize(QtCore.QSize(200,100))
-        
+
         self._lst_rooms = QtGui.QListWidget()
-        
+
         _layout = QtGui.QVBoxLayout()
 
         _layout.addWidget(self._txt_tags)
@@ -84,9 +84,10 @@ class MeddleWindow(QtGui.QWidget):
         _layout.addWidget(self._lst_rooms)
 
         self._txt_tags.textChanged.connect(self._on_tags_changed)
-        
-        self.setLayout(_layout) 
-       
+        self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
+
+        self.setLayout(_layout)
+
         self.setGeometry(800, 100, 500, 500)
         self._update_window_title()
         self.show()
@@ -106,7 +107,7 @@ class MeddleWindow(QtGui.QWidget):
 
     def meddle_on_message(self, channel, name, text):
         QtCore.QMetaObject.invokeMethod(
-                self, "_on_message", 
+                self, "_on_message",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, channel),
                 QtCore.Q_ARG(str, name),
@@ -115,46 +116,50 @@ class MeddleWindow(QtGui.QWidget):
     def meddle_on_joined_channel(self, channel):
         self._update_user_list(self.meddle_base.get_users())
         QtCore.QMetaObject.invokeMethod(
-                self, "_add_channel", 
+                self, "_add_channel",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, channel))
-    
+
     def meddle_on_connection_established(self, status):
         logging.info("connection status changed: %s " % status)
         self._update_window_title()
 
     def meddle_on_tag_notification(self, tag, channel):
         logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
-        
+
     def meddle_on_user_update(self, users):
         self._update_user_list(users)
-        
+
     def _update_window_title(self):
         _title = 'meddle:%s:%s : %s' % (
-            self.meddle_base.current_username(), 
+            self.meddle_base.current_username(),
             self.meddle_base.get_servername(),
             "connected" if self.meddle_base.get_connection_status() else "DISCONNECTED")
         QtCore.QMetaObject.invokeMethod(
-                self, "_set_window_title", 
+                self, "_set_window_title",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, _title))
 
     @QtCore.pyqtSlot(str)
     def _set_window_title(self, title):
         self.setWindowTitle(title)
-        
+
+    def _on_lst_users_doubleClicked(self, index):
+        _user = self._lst_users.item(index.row()).text()
+        logging.debug("doubleclick on user %s" % _user)
+
     def _update_user_list(self, users):
         self._lst_users.clear()
         logging.info("users: %s" % users)
         for u in users:
             self._lst_users.addItem(u)
-    
+
     @QtCore.pyqtSlot(str)
     def _add_channel(self, channel):
         _item1 = QtGui.QListWidgetItem()
         _item1.setSizeHint(QtCore.QSize(100,200))
 
-        self._lst_rooms.addItem(_item1)    
+        self._lst_rooms.addItem(_item1)
         _chat_window = chat_widget(self.meddle_base, channel)
         self._chats[channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
@@ -165,7 +170,7 @@ def main():
     app = QtGui.QApplication(sys.argv)
     ex = MeddleWindow()
     sys.exit(app.exec_())
-   
+
 
 if __name__ == "__main__":
     logging.basicConfig(
