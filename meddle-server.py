@@ -30,7 +30,7 @@ def handle_tags(socket, channel, text):
 def publish_user_list(socket, users):
     socket.send_multipart(
             ["user_update".encode(),
-             json.dumps(users.names()).encode()])
+             json.dumps(users.users_online()).encode()])
 
 class user:
     def __init__(self):
@@ -43,54 +43,45 @@ class user_container:
         #[(id, item) for id, item in a.items() if item[1] == 'user2']
         # users (id, name, user)
         self._next_id = 0
-        self._users_online = {}
-        self._associated_ids = {}
+        self._users_online = {}     # {id: (name, user)}
+        self._associated_ids = {}   # {name: id}, permanent
         
-        self._ids = {}    # name -> id
-        self._names = {}  # id   -> name, user
-
     def find_or_create_name(self, name):
-        _new_user = False
-        _result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
-        if name in self._ids:
-            _id = self._ids[name]
+        #_result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
+        
+        if name in self._associated_ids:
+            _id = self._associated_ids[name]
         else:
             _id = self._next_id
             self._next_id += 1
-            self._names[_id] = (name, user())
-            self._ids[name] = _id
+            self._associated_ids[name] = _id
+            
+        _new_user = False
+        if _id not in self._users_online:
+            self._users_online[_id] = (name, user())
             _new_user = True
-        _, _user = self._names[_id]
+        _, _user = self._users_online[_id]
         return (_new_user, _id, _user)
 
-    def find_id(self, id):
-        if id in self._names:
-            return self._names[id]
-        return None, None
+    def get_name(self, id):
+        """ returns name """
+        if id in self._associated_ids:
+            return self._associated_ids[id]
+        return None
     
-    def remove(self, user_ids):
-        ri = []
-        rn = []
-        for _name, _id in self._ids.items():
-            if _id in user_ids:
-                #del self._ids[_name]
-                #del self._names[_id]
-                ri.append(_name)
-                rn.append(_id)
-                print("del %s,%d" % (_name, _id))
-        for i in ri: del self._ids[i]
-        for i in rn: del self._names[i]
+    def set_offline(self, user_ids):
+        for i in user_ids: del self._users_online[i]
         
-    def names(self):
-        return list(self._ids.keys())
+    def users_online(self):
+        return [self._users_online[u][0] for u in self._users_online]
 
     def refresh(self, user_id):
-        self._names[user_id][1].last_ping = time.time()
+        self._users_online[user_id][1].last_ping = time.time()
         
     def find_dead(self):
         _result = []
         _now = time.time()
-        for _id, _user in self._names.items():
+        for _id, _user in self._users_online.items():
             if _now - _user[1].last_ping > 5:
                 _result.append(_id)
         return _result
@@ -119,8 +110,7 @@ def main():
 
         try:
             dead_users = _users.find_dead()
-            print([_users.find_id(i)[0] for i in dead_users])
-            _users.remove(dead_users)
+            _users.set_offline(dead_users)
             publish_user_list(_pub_socket, _users)
     
             if _poller.poll(3000) == []:
@@ -150,8 +140,8 @@ def main():
                 _rpc_socket.send_string(" ".join(_channels.keys()))
     
             elif _message.startswith("get_users"):
-                print(_users.names())
-                _rpc_socket.send_string(json.dumps(_users.names()))
+                print(_users.users_online())
+                _rpc_socket.send_string(json.dumps(_users.users_online()))
     
             elif _message.startswith("ping"):
                 # todo: handle users
@@ -162,7 +152,7 @@ def main():
             elif _message.startswith("publish "):
                 _sender_id = int(_rpc_socket.recv_string())
                 _rpc_socket.send_string("ok")
-                _name, _ = _users.find_id(_sender_id)
+                _name = _users.get_name(_sender_id)
                 # todo: handle wrong user
                 _channel = _message[8:8 + 10]
                 _text = _message[8 + 10 + 1:]
