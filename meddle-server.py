@@ -111,7 +111,8 @@ def main():
         try:
             dead_users = _users.find_dead()
             _users.set_offline(dead_users)
-            publish_user_list(_pub_socket, _users)
+            if not dead_users == []:
+                publish_user_list(_pub_socket, _users)
     
             if _poller.poll(3000) == []:
                 logging.debug("waiting..")
@@ -130,7 +131,9 @@ def main():
                      # todo: send only update-info
                     publish_user_list(_pub_socket, _users)
     
-            elif _message.startswith("create_channel "):
+            elif _message.startswith("create_channel"):
+                _sender_id = int(_rpc_socket.recv_string())
+                _invited_users = _rpc_socket.recv_string()
                 _channel_name = random_string(10)
                 # todo - check collisions
                 _rpc_socket.send_string(_channel_name)
@@ -165,6 +168,7 @@ def main():
         except Exception as ex:
             logging.error("something bad happened: %s", ex)
             time.sleep(3)
+            raise
             
 if __name__ == "__main__":
     logging.basicConfig(

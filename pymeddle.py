@@ -74,6 +74,14 @@ class base:
             answer = self._rpc_socket.recv_string()
         return answer
 
+    def create_channel(self, invited_users=[]):
+        with self._mutex_rpc_socket:
+            self._rpc_socket.send_multipart(
+                ["create_channel".encode(),
+                 self._my_id.encode(),
+                 json.dumps(invited_users).encode()])
+            return self._rpc_socket.recv_string()
+        
     def _set_connection_status(self, status):
         if status != self._connection_status:
             self._connection_status = status
@@ -129,13 +137,12 @@ class base:
             self._users = json.loads(answer)
 
             if _channels == []:
-                answer = self.request("create_channel bob")
+                answer = self.create_channel()
                 _channel_to_join = answer
             else:
                 _channel_to_join = _channels[0]
 
             self._join_channel(_channel_to_join)
-
 
         _thread = Thread(target=lambda: self._recieve_messages())
         _thread.daemon = True

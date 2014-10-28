@@ -147,7 +147,9 @@ class MeddleWindow(QtGui.QWidget):
     def _on_lst_users_doubleClicked(self, index):
         _user = self._lst_users.item(index.row()).text()
         logging.debug("doubleclick on user %s" % _user)
-
+        _channel = self.meddle_base.create_channel([_user])
+        print(_channel)
+        
     def _update_user_list(self, users):
         self._lst_users.clear()
         logging.info("users: %s" % users)
@@ -157,7 +159,7 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(str)
     def _add_channel(self, channel):
         _item1 = QtGui.QListWidgetItem()
-        _item1.setSizeHint(QtCore.QSize(100,200))
+        _item1.setSizeHint(QtCore.QSize(100, 200))
 
         self._lst_rooms.addItem(_item1)
         _chat_window = chat_widget(self.meddle_base, channel)
