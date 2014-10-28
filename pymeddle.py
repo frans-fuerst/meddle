@@ -51,7 +51,10 @@ class base:
 
     def request(self, text):
         with self._mutex_rpc_socket:
-            self._rpc_socket.send_string(text)
+            if type(text) in (list, tuple):
+                self._rpc_socket.send_multipart([str(i).encode() for i in text])
+            else:
+                self._rpc_socket.send_string(text)
 
             poller = zmq.Poller()
             poller.register(self._rpc_socket, zmq.POLLIN)
@@ -140,7 +143,7 @@ class base:
 
         while True:
             time.sleep(1)
-            answer = self.request('ping')
+            answer = self.request(['ping', self._my_id])
             # logging.info("ping: " + answer )
 
     def _join_channel(self, channel):
