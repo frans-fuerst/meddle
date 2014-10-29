@@ -5,8 +5,19 @@ import sys
 if sys.version_info < (3,1,):
     print("please use only Python 3.1 an up")
     sys.exit(-1)
-
-import zmq
+try:
+    import zmq
+except:
+    print("you need the pyzmq package installed for your running python instance.")
+    print()
+    print("go to https://pypi.python.org/pypi/pyzmq/14.4.0, get the wheel file "
+          "and install with")
+    print()
+    print("python[.exe] -m pip install /path/to/pyzmq-wheel-file.whl")
+    print()
+    print("or use your package manager to install 'python3-zmq'")
+    sys.exit(-1)
+    
 import getpass
 from threading import Thread, Lock
 import pymeddle
@@ -14,12 +25,25 @@ import logging
 from optparse import OptionParser
 import json
 import time
+import ast
+import socket
 
 
 def system_username():
     # todo: format (spaces, etc)
     return getpass.getuser()
 
+def find_first_available_server(options):
+    if 'servernames' in options:
+        for s in options['servernames']:
+            try:
+                print(socket.gethostbyname_ex(s))
+                return socket.gethostbyname_ex(s)[0]
+            except:
+                pass
+    else:
+        return 'scibernetic.de'
+    
 class base:
 
     def __init__(self, handler):
@@ -37,13 +61,26 @@ class base:
                           help="meddle server tcp port")
 
         (options, args) = parser.parse_args()
-
+        
+        _perstitent_settings = {}
+        try:
+            _perstitent_settings.update(ast.literal_eval(open('.meddle-default').read()))
+            print(ast.literal_eval(open('.meddle-default').read()))
+        except Exception as e:
+            print(e)
+        print(_perstitent_settings)
+        
         self.context = zmq.Context()
         self._handler = handler
         self._my_id = 0
         self._subscriptions = []
+        self._last_tags = set()
         self._username = options.username if options.username else system_username()
-        self._servername = options.servername if options.servername else "scibernetic.de"
+        
+        if options.servername:
+            self._servername = options.servername
+        else:
+            self._servername = find_first_available_server(_perstitent_settings)
         self._serverport = options.serverport if options.serverport else 32100
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
@@ -74,8 +111,13 @@ class base:
         _thread.start()
 
     def set_tags(self, tags):
-        for t in tags:
+        _new_tags = set(tags)
+        for t in _new_tags - self._last_tags:
+            print("subscribe '%s'" % t)
             self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
+        for t in self._last_tags - _new_tags:
+            print("unsubscribe '%s'" % t)
+        self._last_tags = set(tags)
 
     def get_users(self):
         answer = self._request("get_users")

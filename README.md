@@ -78,8 +78,8 @@ ToDo
 - [ ] Leave room
 - [ ] Multi room
 - [ ] setup.py file
-- [ ] instructions on startup when missing libs (zmq/qt4/json)
 - [ ] load conversation on join
+- [x] instructions on startup when missing libs (zmq/qt4/json)
 - [x] refactor: multipart-message concept
 - [x] refactor: client instant invoke
 - [x] Named messages

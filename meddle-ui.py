@@ -2,7 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from PyQt4 import QtGui, QtCore, Qt
+try:
+    from PyQt4 import QtGui, QtCore, Qt
+except:
+    print("you need the PyQt4 package installed for your running python instance.")
+    print()
+    print("go to http://www.riverbankcomputing.co.uk/software/pyqt/download and" 
+          "get the package or use your package manager to install 'python3-pyqt4'")
+    sys.exit(-1)
+    
 import logging
 
 import pymeddle
@@ -108,7 +116,9 @@ class MeddleWindow(QtGui.QWidget):
         _layout.addWidget(self._lst_rooms)
         _layout.addWidget(self._lst_notifications)
 
-        self._txt_tags.textChanged.connect(self._on_tags_changed)
+        self._txt_tags.textChanged.connect(self._on_txt_tags_textChanged)
+        self._txt_tags.returnPressed.connect(self._on_txt_tags_returnPressed)
+        
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
 
         self.setLayout(_layout)
@@ -118,10 +128,15 @@ class MeddleWindow(QtGui.QWidget):
         self.show()
 
     @QtCore.pyqtSlot(str)
-    def _on_tags_changed(self, text):
+    def _on_txt_tags_textChanged(self, text):
         _tags = [x.lower() for x in text.split(' ') if x.strip() != ""]
-        self.meddle_base.set_tags(_tags)
 
+    @QtCore.pyqtSlot()
+    def _on_txt_tags_returnPressed(self):
+        _tags = [x.lower() for x in self._txt_tags.text().split(' ') if x.strip() != ""]
+        logging.info('set tags to %s', _tags)
+        self.meddle_base.set_tags(_tags)
+    
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
