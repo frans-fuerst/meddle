@@ -76,8 +76,11 @@ class user_container:
         return [self._users_online[u][0] for u in self._users_online]
 
     def refresh(self, user_id):
+        if not user_id in self._users_online:
+            return False
         self._users_online[user_id][1].last_ping = time.time()
-        
+        return True
+    
     def find_dead(self):
         _result = []
         _now = time.time()
@@ -149,9 +152,11 @@ def main():
             elif _message.startswith("ping"):
                 # todo: handle users
                 _sender_id = int(_rpc_socket.recv_string())
-                _users.refresh(_sender_id)
-                _rpc_socket.send_string('ok')
-    
+                if _users.refresh(_sender_id):
+                    _rpc_socket.send_string('ok')
+                else:
+                    _rpc_socket.send_string('nok')
+                
             elif _message.startswith("publish "):
                 _sender_id = int(_rpc_socket.recv_string())
                 _rpc_socket.send_string("ok")
