@@ -177,8 +177,9 @@ class base:
             if message.startswith("tag#"):
                 _tag = message
                 _channel = self._sub_socket.recv_string()
-                self._handler.meddle_on_tag_notification(_tag, _channel)
-            if message.startswith("notify"):
+                _message = self._sub_socket.recv_string()
+                self._handler.meddle_on_tag_notification(_tag, _channel, _message)
+            elif message.startswith("notify"):
                 _opcode = self._sub_socket.recv_string()
                 if _opcode == 'join_channel':
                     _channel = self._sub_socket.recv_string()

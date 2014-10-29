@@ -79,7 +79,7 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2.addWidget(self._txt_tags)
         _hlayout2_widget = QtGui.QWidget()
         _hlayout2_widget.setLayout(_hlayout2)
-        _hlayout2_widget.setMaximumSize(QtCore.QSize(2000,100))
+        _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
 
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
@@ -93,9 +93,12 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout1.addWidget(self._lst_channels, 1, 1)
         _hlayout1_widget = QtGui.QWidget()
         _hlayout1_widget.setLayout(_hlayout1)
-        _hlayout1_widget.setMaximumSize(QtCore.QSize(2000,100))
+        _hlayout1_widget.setMaximumSize(QtCore.QSize(3000, 100))
 
         self._lst_rooms = QtGui.QListWidget()
+
+        self._lst_notifications = QtGui.QListWidget()
+        self._lst_notifications.setMaximumSize(QtCore.QSize(3000, 100))
 
         _layout = QtGui.QVBoxLayout()
 
@@ -103,6 +106,7 @@ class MeddleWindow(QtGui.QWidget):
         #_layout.addWidget(self._lst_users)
         _layout.addWidget(_hlayout1_widget)
         _layout.addWidget(self._lst_rooms)
+        _layout.addWidget(self._lst_notifications)
 
         self._txt_tags.textChanged.connect(self._on_tags_changed)
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
@@ -158,6 +162,7 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
+        print("%s %s %s" %(channel, name, text))
         self._chats[channel].on_message(name, text)
 
     @QtCore.pyqtSlot(str)
@@ -175,9 +180,11 @@ class MeddleWindow(QtGui.QWidget):
         logging.info("connection status changed: %s " % status)
         self._update_widgets()
 
-    @QtCore.pyqtSlot(str, str)
-    def _meddle_on_tag_notification(self, tag, channel):
-        logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
+    @QtCore.pyqtSlot(str, str, str)
+    def _meddle_on_tag_notification(self, tag, channel, user, text):
+        logging.info("tag '%s' has been mentioned on channel %s: %s",
+                     tag, channel, text)
+        self._lst_notifications.addItem("%s: %s: %s" % (channel, user, text))
 
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
@@ -203,12 +210,14 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(bool, status))
 
-    def meddle_on_tag_notification(self, tag, channel):
+    def meddle_on_tag_notification(self, tag, channel, user, text):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_tag_notification",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, tag),
-                QtCore.Q_ARG(str, channel))
+                QtCore.Q_ARG(str, channel),
+                QtCore.Q_ARG(str, user),
+                QtCore.Q_ARG(str, text))
 
     def meddle_on_user_update(self, users):
         QtCore.QMetaObject.invokeMethod(

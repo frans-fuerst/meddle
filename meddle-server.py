@@ -18,13 +18,17 @@ def publish(socket, participant, channel, text):
 
 def random_string(N):
     return ''.join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
+        random.choice(string.ascii_uppercase + string.digits)
+        for _ in range(N))
 
-def handle_tags(socket, channel, text):
-    _contained_tags = [x for x in (text.replace('.', ' ')).split(' ') if x[0] == '#']
+def handle_tags(socket, channel, user, text):
+    _contained_tags = [x for x in (text.replace('.', ' ')).split(' ')
+                       if len(x) > 1 and x[0] == '#']
     logging.info("tags mentioned: %s", _contained_tags)
     for t in _contained_tags:
-        socket.send_multipart([("tag%s" % t).encode(), channel.encode()])
+        socket.send_multipart(
+            tuple(str(x).encode()
+                  for x in ("tag%s" % t, channel, user, text)))
 
 def publish_user_list(socket, users):
     socket.send_multipart(
@@ -32,8 +36,9 @@ def publish_user_list(socket, users):
              json.dumps(users.users_online()).encode()])
 
 def notify_user(socket, user_id, msg):
-    socket.send_multipart( tuple(str(x).encode() for x in (
-        "notify%d" % user_id,) + tuple(msg)))
+    socket.send_multipart(
+        tuple(str(x).encode()
+              for x in ("notify%d" % user_id,) + tuple(msg)))
 
 class user:
     def __init__(self):
@@ -189,7 +194,7 @@ def main():
                 else:
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
-                    handle_tags(_pub_socket, _channel, _text)
+                    handle_tags(_pub_socket, _channel, _name, _text)
                     publish(_pub_socket, _name, _channel, _text)
 
         except Exception as ex:

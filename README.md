@@ -65,17 +65,12 @@ ToDo
 ----
 
 === before public release
+- [ ] join an existing channel
+- [ ] notify/join on tag notification
 - [ ] ZMQ/Multiple threads? Context?
-- [x] refactor: multipart-message concept
 - [ ] refactor: server: one thread
-- [x] refactor: client instant invoke
-- [x] Named messages
-- [x] Qt interface
-- [x] Recognize hashtags
-- [x] list users
 - [ ] config file
-- [x] Watchdog / connection status
-- [ ] unsubscribe hashtags
+- [ ] unsubscribe hashtags + tagging on enter + bold on active
 - [ ] Join rooms
 - [ ] Log messages (+timestamp)
 - [ ] Invite on hashtags
@@ -84,6 +79,14 @@ ToDo
 - [ ] Multi room
 - [ ] setup.py file
 - [ ] instructions on startup when missing libs (zmq/qt4/json)
+- [ ] load conversation on join
+- [x] refactor: multipart-message concept
+- [x] refactor: client instant invoke
+- [x] Named messages
+- [x] Qt interface
+- [x] Recognize hashtags
+- [x] list users
+- [x] Watchdog / connection status
 
 === after public release
 - [ ] sync/async cleanup: make all calls fast and async where needed
