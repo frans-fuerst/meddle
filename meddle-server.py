@@ -21,12 +21,11 @@ def random_string(N):
         random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
 
 def handle_tags(socket, channel, text):
-    print((text.replace('.', ' ')).split(' '))
     _contained_tags = [x for x in (text.replace('.', ' ')).split(' ') if x[0] == '#']
     logging.info("tags mentioned: %s", _contained_tags)
     for t in _contained_tags:
         socket.send_multipart([("tag%s" % t).encode(), channel.encode()])
-        
+
 def publish_user_list(socket, users):
     socket.send_multipart(
             ["user_update".encode(),
@@ -45,17 +44,17 @@ class user_container:
         self._next_id = 0
         self._users_online = {}     # {id: (name, user)}
         self._associated_ids = {}   # {name: id}, permanent
-        
+
     def find_or_create_name(self, name):
         #_result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
-        
+
         if name in self._associated_ids:
             _id = self._associated_ids[name]
         else:
             _id = self._next_id
             self._next_id += 1
             self._associated_ids[name] = _id
-            
+
         _new_user = False
         if _id not in self._users_online:
             self._users_online[_id] = (name, user())
@@ -68,10 +67,10 @@ class user_container:
         if id in self._users_online:
             return self._users_online[id][0]
         return None
-    
+
     def set_offline(self, user_ids):
         for i in user_ids: del self._users_online[i]
-        
+
     def users_online(self):
         return [self._users_online[u][0] for u in self._users_online]
 
@@ -80,15 +79,17 @@ class user_container:
             return False
         self._users_online[user_id][1].last_ping = time.time()
         return True
-    
+
     def find_dead(self):
         _result = []
         _now = time.time()
         for _id, _user in self._users_online.items():
             if _now - _user[1].last_ping > 5:
                 _result.append(_id)
+        if len(_result) > 0:
+            logging.info("users %s timeouted" % _result)
         return _result
-    
+
 def main():
     _users = user_container()
     _context = zmq.Context()
@@ -116,65 +117,69 @@ def main():
             _users.set_offline(dead_users)
             if not dead_users == []:
                 publish_user_list(_pub_socket, _users)
-    
+
             if _poller.poll(3000) == []:
                 logging.debug("waiting..")
                 continue
-            
+
             _message = _rpc_socket.recv_string()
-            logging.debug("got '%s' (%s)" % (_message, type(_message)))
-    
+            # logging.debug("got '%s' (%s)" % (_message, type(_message)))
+
             if _message.startswith("hello "):
                 _name = _message[6:].strip()
-                logging.debug("using name '%s'" % _name)
+                logging.debug("hello from '%s'" % _name)
                 _is_new, _id, _user = _users.find_or_create_name(_name)
-    
+
                 _rpc_socket.send_string("hello %d" % _id)
                 if _is_new:
                      # todo: send only update-info
                     publish_user_list(_pub_socket, _users)
-    
+
             elif _message.startswith("create_channel"):
                 _sender_id = int(_rpc_socket.recv_string())
                 _invited_users = _rpc_socket.recv_string()
+                logging.debug("create_channel from '%s'", _sender_id)
                 _channel_name = random_string(10)
                 # todo - check collisions
                 _rpc_socket.send_string(_channel_name)
                 _channels[_channel_name] = None
-    
+
             elif _message.startswith("get_channels"):
                 _rpc_socket.send_string(" ".join(_channels.keys()))
-    
+
             elif _message.startswith("get_users"):
-                print(_users.users_online())
                 _rpc_socket.send_string(json.dumps(_users.users_online()))
-    
+
             elif _message.startswith("ping"):
                 # todo: handle users
                 _sender_id = int(_rpc_socket.recv_string())
                 if _users.refresh(_sender_id):
                     _rpc_socket.send_string('ok')
                 else:
+                    logging.warn("user with id %d marked offline but sending",
+                                 _sender_id)
                     _rpc_socket.send_string('nok')
-                
-            elif _message.startswith("publish "):
+
+            elif _message == "publish":
                 _sender_id = int(_rpc_socket.recv_string())
-                _rpc_socket.send_string("ok")
+                _channel = _rpc_socket.recv_string()
+                _text = _rpc_socket.recv_string()
                 _name = _users.get_name(_sender_id)
-                # todo: handle wrong user
-                _channel = _message[8:8 + 10]
-                _text = _message[8 + 10 + 1:]
-                handle_tags(_pub_socket, _channel, _text)
-                publish(_pub_socket, _name, _channel, _text)
-    
-            else:
-                _rpc_socket.send_string('nok')
-                
+                if not _name:
+                    logging.warn("user with id %d marked offline but sending",
+                                 _sender_id)
+                    _rpc_socket.send_string("nok")
+                else:
+                    _rpc_socket.send_string('ok')
+                    # todo: handle wrong user
+                    handle_tags(_pub_socket, _channel, _text)
+                    publish(_pub_socket, _name, _channel, _text)
+
         except Exception as ex:
             logging.error("something bad happened: %s", ex)
             time.sleep(3)
             raise
-            
+
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s (%(thread)d) %(levelname)s %(message)s",

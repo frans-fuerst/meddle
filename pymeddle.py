@@ -69,9 +69,11 @@ class base:
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
             self._rpc_socket.send_multipart(
-                [("publish %s %s" % (self._subscriptions[0], text)).encode(),
-                 self._my_id.encode(),])
+                tuple(str(x).encode() for x in (
+                    "publish", self._my_id, channel, text)))
             answer = self._rpc_socket.recv_string()
+            if answer != 'ok':
+                logging.warn("we got '%s' as reply to publish", answer)
         return answer
 
     def create_channel(self, invited_users=[]):
@@ -81,7 +83,7 @@ class base:
                  self._my_id.encode(),
                  json.dumps(invited_users).encode()])
             return self._rpc_socket.recv_string()
-        
+
     def _set_connection_status(self, status):
         if status != self._connection_status:
             self._connection_status = status
@@ -149,9 +151,10 @@ class base:
         _thread.start()
 
         while True:
-            time.sleep(1)
+            time.sleep(2)
             answer = self.request(['ping', self._my_id])
-            # logging.info("ping: " + answer )
+            if answer != 'ok':
+                logging.warn("we got '%s' as reply to ping", answer)
 
     def _join_channel(self, channel):
         self._subscriptions.append(channel)
