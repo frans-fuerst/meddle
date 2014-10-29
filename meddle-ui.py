@@ -88,7 +88,8 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget = QtGui.QWidget()
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
-
+        
+        
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
         _lbl_users = QtGui.QLabel('online:')
@@ -129,12 +130,19 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str)
     def _on_txt_tags_textChanged(self, text):
-        _tags = [x.lower() for x in text.split(' ') if x.strip() != ""]
+        font = self._txt_tags.font()
+        font.setWeight(QtGui.QFont.Bold)
+        font.setBold(False)
+        self._txt_tags.setFont(font)
 
     @QtCore.pyqtSlot()
     def _on_txt_tags_returnPressed(self):
         _tags = [x.lower() for x in self._txt_tags.text().split(' ') if x.strip() != ""]
         logging.info('set tags to %s', _tags)
+        font = self._txt_tags.font()
+        font.setWeight(QtGui.QFont.Bold)
+        font.setBold(True)
+        self._txt_tags.setFont(font)
         self.meddle_base.set_tags(_tags)
     
     def keyPressEvent(self, e):
