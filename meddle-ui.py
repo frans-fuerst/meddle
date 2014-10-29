@@ -122,6 +122,15 @@ class MeddleWindow(QtGui.QWidget):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
 
+    def _update_widgets(self):
+        self._update_window_title()
+        if self.meddle_base.get_connection_status():
+            self._update_user_list(self.meddle_base.get_users())
+            self._update_channel_list(self.meddle_base.get_channels())
+        else:
+            self._update_user_list([])
+            self._update_channel_list([])
+
     def _update_window_title(self):
         _title = 'meddle:%s:%s : %s' % (
             self.meddle_base.current_username(),
@@ -129,17 +138,23 @@ class MeddleWindow(QtGui.QWidget):
             "connected" if self.meddle_base.get_connection_status() else "DISCONNECTED")
         self.setWindowTitle(_title)
 
-    def _on_lst_users_doubleClicked(self, index):
-        _user = self._lst_users.item(index.row()).text()
-        logging.debug("doubleclick on user %s" % _user)
-        _channel = self.meddle_base.create_channel([_user])
-        print(_channel)
-
     def _update_user_list(self, users):
         self._lst_users.clear()
         logging.info("users: %s" % users)
         for u in users:
             self._lst_users.addItem(u)
+
+    def _update_channel_list(self, channels):
+        self._lst_channels.clear()
+        logging.info("channels: %s" % channels)
+        for c in channels:
+            self._lst_channels.addItem(c)
+
+    def _on_lst_users_doubleClicked(self, index):
+        _user = self._lst_users.item(index.row()).text()
+        logging.debug("doubleclick on user %s" % _user)
+        _channel = self.meddle_base.create_channel([_user])
+        print(_channel)
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
@@ -147,9 +162,6 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str)
     def _meddle_on_joined_channel(self, channel):
-        #should not be nessessary
-        self._update_user_list(self.meddle_base.get_users())
-
         _item1 = QtGui.QListWidgetItem()
         _item1.setSizeHint(QtCore.QSize(100, 200))
 
@@ -161,7 +173,7 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(bool)
     def _meddle_on_connection_established(self, status):
         logging.info("connection status changed: %s " % status)
-        self._update_window_title()
+        self._update_widgets()
 
     @QtCore.pyqtSlot(str, str)
     def _meddle_on_tag_notification(self, tag, channel):

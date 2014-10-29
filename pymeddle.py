@@ -45,26 +45,8 @@ class base:
         self._username = options.username if options.username else system_username()
         self._servername = options.servername if options.servername else "scibernetic.de"
         self._serverport = options.serverport if options.serverport else 32100
-        self._users = []
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
-
-    def request(self, text):
-        with self._mutex_rpc_socket:
-            if type(text) in (list, tuple):
-                self._rpc_socket.send_multipart([str(i).encode() for i in text])
-            else:
-                self._rpc_socket.send_string(text)
-
-            poller = zmq.Poller()
-            poller.register(self._rpc_socket, zmq.POLLIN)
-            while poller.poll(1000) == []:
-                logging.warn("timeout!")
-                self._set_connection_status(False)
-
-            self._set_connection_status(True)
-            return self._rpc_socket.recv_string()
-
 
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
@@ -84,14 +66,9 @@ class base:
                  json.dumps(invited_users).encode()])
             return self._rpc_socket.recv_string()
 
-    def _set_connection_status(self, status):
-        if status != self._connection_status:
-            self._connection_status = status
-            self._handler.meddle_on_connection_established(status)
-
     def connect(self):
         self._set_connection_status(False)
-        _thread = Thread(target=lambda: self.rpc_thread())
+        _thread = Thread(target=lambda: self._rpc_thread())
         _thread.daemon = True
         _thread.start()
 
@@ -100,7 +77,14 @@ class base:
             self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
 
     def get_users(self):
-        return self._users
+        answer = self._request("get_users")
+        return json.loads(answer)
+
+    def get_channels(self):
+        answer = self._request("get_channels")
+        _channels = answer.split()
+        logging.info("channels: %s" % _channels)
+        return _channels
 
     def get_connection_status(self):
         return bool(self._connection_status)
@@ -114,7 +98,28 @@ class base:
     def current_username(self):
         return self._username
 
-    def rpc_thread(self):
+    def _request(self, text):
+        with self._mutex_rpc_socket:
+            if type(text) in (list, tuple):
+                self._rpc_socket.send_multipart([str(i).encode() for i in text])
+            else:
+                self._rpc_socket.send_string(text)
+
+            poller = zmq.Poller()
+            poller.register(self._rpc_socket, zmq.POLLIN)
+            while poller.poll(1000) == []:
+                logging.warn("timeout!")
+                self._set_connection_status(False)
+
+            self._set_connection_status(True)
+            return self._rpc_socket.recv_string()
+
+    def _set_connection_status(self, status):
+        if status != self._connection_status:
+            self._connection_status = status
+            self._handler.meddle_on_connection_established(status)
+
+    def _rpc_thread(self):
 
         _rpc_server_address = "tcp://%s:%d" % (self._servername, self._serverport)
         logging.info("connect to %s" % _rpc_server_address)
@@ -127,16 +132,14 @@ class base:
         ## refactor! - should all go away
         if True:
 
-            answer = self.request("hello %s" % self._username)
+            answer = self._request("hello %s" % self._username)
             self._my_id = answer[6:]
             logging.info("server: calls us '%s'" % self._my_id)
 
-            answer = self.request("get_channels")
+            """
+            answer = self._request("get_channels")
             _channels = answer.split()
             logging.info("channels: %s" % _channels)
-
-            answer = self.request("get_users")
-            self._users = json.loads(answer)
 
             if _channels == []:
                 answer = self.create_channel()
@@ -145,6 +148,7 @@ class base:
                 _channel_to_join = _channels[0]
 
             self._join_channel(_channel_to_join)
+            """
 
         _thread = Thread(target=lambda: self._recieve_messages())
         _thread.daemon = True
@@ -152,7 +156,7 @@ class base:
 
         while True:
             time.sleep(2)
-            answer = self.request(['ping', self._my_id])
+            answer = self._request(['ping', self._my_id])
             if answer != 'ok':
                 logging.warn("we got '%s' as reply to ping", answer)
 

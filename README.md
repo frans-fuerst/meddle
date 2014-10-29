@@ -66,15 +66,15 @@ ToDo
 
 === before public release
 - [ ] ZMQ/Multiple threads? Context?
-- [ ] refactor: multipart-message concept
+- [x] refactor: multipart-message concept
 - [ ] refactor: server: one thread
-- [ ] refactor: client instant invoke
+- [x] refactor: client instant invoke
 - [x] Named messages
 - [x] Qt interface
 - [x] Recognize hashtags
 - [x] list users
 - [ ] config file
-- [ ] Watchdog / connection status
+- [x] Watchdog / connection status
 - [ ] unsubscribe hashtags
 - [ ] Join rooms
 - [ ] Log messages (+timestamp)
@@ -82,9 +82,11 @@ ToDo
 - [ ] Search in logs
 - [ ] Leave room
 - [ ] Multi room
-- [ ] setup file
+- [ ] setup.py file
+- [ ] instructions on startup when missing libs (zmq/qt4/json)
 
 === after public release
+- [ ] sync/async cleanup: make all calls fast and async where needed
 - [ ] Send files
 - [ ] WebClient (to circumvent http/proxy restrictions)
 - [ ] Android Client
