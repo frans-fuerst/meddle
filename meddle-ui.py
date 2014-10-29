@@ -71,16 +71,37 @@ class MeddleWindow(QtGui.QWidget):
     def _init_ui(self):
         logging.info("init_ui")
 
+        _lbl_tags = QtGui.QLabel('your tags:')
         self._txt_tags = QtGui.QLineEdit()
+        _hlayout2 = QtGui.QHBoxLayout()
+        _hlayout2.setMargin(0)
+        _hlayout2.addWidget(_lbl_tags)
+        _hlayout2.addWidget(self._txt_tags)
+        _hlayout2_widget = QtGui.QWidget()
+        _hlayout2_widget.setLayout(_hlayout2)
+        _hlayout2_widget.setMaximumSize(QtCore.QSize(2000,100))
+
         self._lst_users = QtGui.QListWidget()
-        self._lst_users.setMaximumSize(QtCore.QSize(200,100))
+        self._lst_channels = QtGui.QListWidget()
+        _lbl_users = QtGui.QLabel('online:')
+        _lbl_channels = QtGui.QLabel('channels:')
+        _hlayout1 = QtGui.QGridLayout()
+        _hlayout1.setMargin(0)
+        _hlayout1.addWidget(_lbl_users,         0, 0)
+        _hlayout1.addWidget(_lbl_channels,      0, 1)
+        _hlayout1.addWidget(self._lst_users,    1, 0)
+        _hlayout1.addWidget(self._lst_channels, 1, 1)
+        _hlayout1_widget = QtGui.QWidget()
+        _hlayout1_widget.setLayout(_hlayout1)
+        _hlayout1_widget.setMaximumSize(QtCore.QSize(2000,100))
 
         self._lst_rooms = QtGui.QListWidget()
 
         _layout = QtGui.QVBoxLayout()
 
-        _layout.addWidget(self._txt_tags)
-        _layout.addWidget(self._lst_users)
+        _layout.addWidget(_hlayout2_widget)
+        #_layout.addWidget(self._lst_users)
+        _layout.addWidget(_hlayout1_widget)
         _layout.addWidget(self._lst_rooms)
 
         self._txt_tags.textChanged.connect(self._on_tags_changed)
@@ -113,7 +134,7 @@ class MeddleWindow(QtGui.QWidget):
         logging.debug("doubleclick on user %s" % _user)
         _channel = self.meddle_base.create_channel([_user])
         print(_channel)
-        
+
     def _update_user_list(self, users):
         self._lst_users.clear()
         logging.info("users: %s" % users)
