@@ -64,7 +64,8 @@ class base:
                 ["create_channel".encode(),
                  self._my_id.encode(),
                  json.dumps(invited_users).encode()])
-            return self._rpc_socket.recv_string()
+            _new_channel = self._rpc_socket.recv_string()
+            self._join_channel(_new_channel)
 
     def connect(self):
         self._set_connection_status(False)
@@ -161,13 +162,15 @@ class base:
                 logging.warn("we got '%s' as reply to ping", answer)
 
     def _join_channel(self, channel):
-        self._subscriptions.append(channel)
-        self._handler.meddle_on_joined_channel(channel)
-        logging.info("talking on channel '%s'" % channel)
-        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
+        if not channel in self._subscriptions:
+            self._subscriptions.append(channel)
+            self._handler.meddle_on_joined_channel(channel)
+            logging.info("talking on channel '%s'" % channel)
+            self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
 
     def _recieve_messages(self):
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
+        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'notify%s' % self._my_id)
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         while True:
             message = self._sub_socket.recv_string()
@@ -175,6 +178,14 @@ class base:
                 _tag = message
                 _channel = self._sub_socket.recv_string()
                 self._handler.meddle_on_tag_notification(_tag, _channel)
+            if message.startswith("notify"):
+                _opcode = self._sub_socket.recv_string()
+                if _opcode == 'join_channel':
+                    _channel = self._sub_socket.recv_string()
+                    self._join_channel(_channel)
+                else:
+                    pass
+
             elif message.startswith("user_update"):
                 _extra_info = self._sub_socket.recv_string()
                 self._handler.meddle_on_user_update(json.loads(_extra_info))

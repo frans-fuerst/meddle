@@ -31,6 +31,10 @@ def publish_user_list(socket, users):
             ["user_update".encode(),
              json.dumps(users.users_online()).encode()])
 
+def notify_user(socket, user_id, msg):
+    socket.send_multipart( tuple(str(x).encode() for x in (
+        "notify%d" % user_id,) + tuple(msg)))
+
 class user:
     def __init__(self):
         self.last_ping = time.time()
@@ -67,6 +71,9 @@ class user_container:
         if id in self._users_online:
             return self._users_online[id][0]
         return None
+
+    def get_id(self, name):
+        return self._associated_ids[name]
 
     def set_offline(self, user_ids):
         for i in user_ids: del self._users_online[i]
@@ -135,14 +142,24 @@ def main():
                      # todo: send only update-info
                     publish_user_list(_pub_socket, _users)
 
-            elif _message.startswith("create_channel"):
+            elif _message == "create_channel":
                 _sender_id = int(_rpc_socket.recv_string())
-                _invited_users = _rpc_socket.recv_string()
-                logging.debug("create_channel from '%s'", _sender_id)
-                _channel_name = random_string(10)
-                # todo - check collisions
-                _rpc_socket.send_string(_channel_name)
-                _channels[_channel_name] = None
+                _invited_users = json.loads(_rpc_socket.recv_string())
+                _name = _users.get_name(_sender_id)
+                if not _name:
+                    logging.warn("user with id %d marked offline but sending",
+                                 _sender_id)
+                    _rpc_socket.send_string("nok")
+                else:
+                    logging.debug("%s creates channel and invites '%s'",
+                                  _sender_id, _invited_users)
+                    _channel_name = random_string(10)
+                    # todo - check collisions
+                    _rpc_socket.send_string(_channel_name)
+                    _channels[_channel_name] = None
+                    for uid in [_users.get_id(u) for u in _invited_users]:
+                        notify_user(_pub_socket,
+                                    uid, ('join_channel', _channel_name))
 
             elif _message.startswith("get_channels"):
                 _rpc_socket.send_string(" ".join(_channels.keys()))

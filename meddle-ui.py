@@ -154,7 +154,7 @@ class MeddleWindow(QtGui.QWidget):
         _user = self._lst_users.item(index.row()).text()
         logging.debug("doubleclick on user %s" % _user)
         _channel = self.meddle_base.create_channel([_user])
-        print(_channel)
+        #print(_channel)
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
