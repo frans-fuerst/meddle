@@ -65,8 +65,8 @@ class user_container:
 
     def get_name(self, id):
         """ returns name """
-        if id in self._associated_ids:
-            return self._associated_ids[id]
+        if id in self._users_online:
+            return self._users_online[id][0]
         return None
     
     def set_offline(self, user_ids):

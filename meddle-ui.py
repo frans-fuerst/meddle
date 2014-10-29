@@ -101,48 +101,12 @@ class MeddleWindow(QtGui.QWidget):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
 
-    @QtCore.pyqtSlot(str, str, str)
-    def _on_message(self, channel, name, text):
-        self._chats[channel].on_message(name, text)
-
-    def meddle_on_message(self, channel, name, text):
-        QtCore.QMetaObject.invokeMethod(
-                self, "_on_message",
-                QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, channel),
-                QtCore.Q_ARG(str, name),
-                QtCore.Q_ARG(str, text))
-
-    def meddle_on_joined_channel(self, channel):
-        self._update_user_list(self.meddle_base.get_users())
-        QtCore.QMetaObject.invokeMethod(
-                self, "_add_channel",
-                QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, channel))
-
-    def meddle_on_connection_established(self, status):
-        logging.info("connection status changed: %s " % status)
-        self._update_window_title()
-
-    def meddle_on_tag_notification(self, tag, channel):
-        logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
-
-    def meddle_on_user_update(self, users):
-        self._update_user_list(users)
-
     def _update_window_title(self):
         _title = 'meddle:%s:%s : %s' % (
             self.meddle_base.current_username(),
             self.meddle_base.get_servername(),
             "connected" if self.meddle_base.get_connection_status() else "DISCONNECTED")
-        QtCore.QMetaObject.invokeMethod(
-                self, "_set_window_title",
-                QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, _title))
-
-    @QtCore.pyqtSlot(str)
-    def _set_window_title(self, title):
-        self.setWindowTitle(title)
+        self.setWindowTitle(_title)
 
     def _on_lst_users_doubleClicked(self, index):
         _user = self._lst_users.item(index.row()).text()
@@ -156,8 +120,15 @@ class MeddleWindow(QtGui.QWidget):
         for u in users:
             self._lst_users.addItem(u)
 
+    @QtCore.pyqtSlot(str, str, str)
+    def _meddle_on_message(self, channel, name, text):
+        self._chats[channel].on_message(name, text)
+
     @QtCore.pyqtSlot(str)
-    def _add_channel(self, channel):
+    def _meddle_on_joined_channel(self, channel):
+        #should not be nessessary
+        self._update_user_list(self.meddle_base.get_users())
+
         _item1 = QtGui.QListWidgetItem()
         _item1.setSizeHint(QtCore.QSize(100, 200))
 
@@ -165,6 +136,52 @@ class MeddleWindow(QtGui.QWidget):
         _chat_window = chat_widget(self.meddle_base, channel)
         self._chats[channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
+
+    @QtCore.pyqtSlot(bool)
+    def _meddle_on_connection_established(self, status):
+        logging.info("connection status changed: %s " % status)
+        self._update_window_title()
+
+    @QtCore.pyqtSlot(str, str)
+    def _meddle_on_tag_notification(self, tag, channel):
+        logging.info("tag '%s' has been mentioned on channel %s", tag, channel)
+
+    @QtCore.pyqtSlot(list)
+    def _meddle_on_user_update(self, users):
+        self._update_user_list(users)
+
+    def meddle_on_message(self, channel, name, text):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_message",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(str, channel),
+                QtCore.Q_ARG(str, name),
+                QtCore.Q_ARG(str, text))
+
+    def meddle_on_joined_channel(self, channel):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_joined_channel",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(str, channel))
+
+    def meddle_on_connection_established(self, status):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_connection_established",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(bool, status))
+
+    def meddle_on_tag_notification(self, tag, channel):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_tag_notification",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(str, tag),
+                QtCore.Q_ARG(str, channel))
+
+    def meddle_on_user_update(self, users):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_user_update",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(list, users))
 
 
 def main():
