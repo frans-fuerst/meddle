@@ -255,6 +255,8 @@ def main():
     ex = MeddleWindow()
     sys.exit(app.exec_())
 
+import datetime
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 if __name__ == "__main__":
     logging.basicConfig(
