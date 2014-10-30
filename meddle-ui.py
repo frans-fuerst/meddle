@@ -30,6 +30,8 @@ class chat_output_widget(QtGui.QPlainTextEdit):
 
 class chat_widget(QtGui.QWidget):
 
+    close_window = QtCore.pyqtSignal(QtGui.QWidget) 
+
     def __init__(self, meddle_base, channel):
         super(chat_widget, self).__init__()
         self._channel = channel
@@ -38,15 +40,33 @@ class chat_widget(QtGui.QWidget):
 
     def init_ui(self):
         self._lbl_chat_room = QtGui.QLabel(self._channel)
+
+        self._pb_exit = QtGui.QPushButton('X')
+        # self._pb_exit.setFlat(True)
+        self._pb_exit.setSizePolicy(
+            QtGui.QSizePolicy.Minimum,
+            QtGui.QSizePolicy.Minimum )
+               
+        _layout1 = QtGui.QHBoxLayout()
+        _layout1.setMargin(0)
+        _layout1.addWidget(self._lbl_chat_room)
+        _layout1.addWidget(self._pb_exit)
+        
+        _layout1_widget = QtGui.QWidget()
+        _layout1_widget.setLayout(_layout1)
+        #_layout1_widget.setMaximumSize(QtCore.QSize(3000,100))
+        
         self._txt_message_edit = QtGui.QLineEdit()
         self._txt_messages = chat_output_widget()
 
-        self._txt_message_edit.returnPressed.connect(self.on__txt_message_edit_returnPressed)
+        self._txt_message_edit.returnPressed.connect(self.on_txt_message_edit_returnPressed)
+        self._pb_exit.pressed.connect(self.on_pb_exit_pressed)
 
         _grid = QtGui.QVBoxLayout()
         #_grid.setSpacing(10)
 
-        _grid.addWidget(self._lbl_chat_room)
+        _grid.addWidget(_layout1_widget)
+        
         _grid.addWidget(self._txt_messages)
         _grid.addWidget(self._txt_message_edit)
 
@@ -57,9 +77,11 @@ class chat_widget(QtGui.QWidget):
         p.setColor(self.backgroundRole(), Qt.QColor(100,100,0))
         self.setPalette(p)
         self.setAutoFillBackground(True)
-
-
-    def on__txt_message_edit_returnPressed(self):
+    
+    def on_pb_exit_pressed(self):
+        self.close_window.emit(self)
+        
+    def on_txt_message_edit_returnPressed(self):
         self._meddle_base.publish(self._channel, self._txt_message_edit.text())
         self._txt_message_edit.setText("")
 
@@ -235,10 +257,20 @@ class MeddleWindow(QtGui.QWidget):
 
         self._lst_rooms.addItem(_item1)
         _chat_window = chat_widget(self.meddle_base, channel)
+        _chat_window.close_window.connect(self._on_chat_window_close_window)
+        
+        for t, name, text in self.meddle_base.get_log(channel):
+            _chat_window.on_message(name, text)
+        
         self._chats[channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
         self._show_notification("you joined channel %s" % channel)
 
+    def _on_chat_window_close_window(self, window):
+        del self._chats[channel]
+        #self._chats.remove(window)
+        #window.setParent(None)
+    
     @QtCore.pyqtSlot(bool)
     def _meddle_on_connection_established(self, status):
         logging.info("connection status changed: %s " % status)
@@ -298,7 +330,7 @@ def main():
     sys.exit(app.exec_())
 
 import datetime
-st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+#st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 if __name__ == "__main__":
     logging.basicConfig(

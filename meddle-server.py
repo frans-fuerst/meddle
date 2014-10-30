@@ -107,6 +107,7 @@ def main():
     _context = zmq.Context()
 
     _channels = {}
+    _logs = {}
     _port_rpc = 32100
     _port_pub = 32101
 
@@ -172,6 +173,13 @@ def main():
             elif _message.startswith("get_users"):
                 _rpc_socket.send_string(json.dumps(_users.users_online()))
 
+            elif _message.startswith("get_log"):
+                _channel = _rpc_socket.recv_string()
+                if _channel in _logs:
+                    _rpc_socket.send_string(json.dumps(_logs[_channel]))
+                else:
+                    _rpc_socket.send_string(json.dumps([]))
+
             elif _message.startswith("ping"):
                 # todo: handle users
                 _sender_id = int(_rpc_socket.recv_string())
@@ -196,6 +204,9 @@ def main():
                     # todo: handle wrong user
                     handle_tags(_pub_socket, _channel, _name, _text)
                     publish(_pub_socket, _name, _channel, _text)
+                    if not _channel in _logs:
+                        _logs[_channel] = []
+                    _logs[_channel].append(("", _name, _text))
 
         except Exception as ex:
             logging.error("something bad happened: %s", ex)

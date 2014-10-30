@@ -154,6 +154,10 @@ class base:
         logging.info("channels: %s" % _channels)
         return _channels
 
+    def get_log(self, channel):
+        answer = self._request(("get_log", channel))
+        return json.loads(answer)
+
     def get_connection_status(self):
         return bool(self._connection_status)
 
