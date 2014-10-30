@@ -7,10 +7,10 @@ try:
 except:
     print("you need the PyQt4 package installed for your running python instance.")
     print()
-    print("go to http://www.riverbankcomputing.co.uk/software/pyqt/download and" 
+    print("go to http://www.riverbankcomputing.co.uk/software/pyqt/download and"
           "get the package or use your package manager to install 'python3-pyqt4'")
     sys.exit(-1)
-    
+
 import logging
 
 import pymeddle
@@ -88,8 +88,8 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget = QtGui.QWidget()
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
-        
-        
+
+
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
         _lbl_users = QtGui.QLabel('online:')
@@ -119,7 +119,7 @@ class MeddleWindow(QtGui.QWidget):
 
         self._txt_tags.textChanged.connect(self._on_txt_tags_textChanged)
         self._txt_tags.returnPressed.connect(self._on_txt_tags_returnPressed)
-        
+
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
 
         self.setLayout(_layout)
@@ -144,7 +144,7 @@ class MeddleWindow(QtGui.QWidget):
         font.setBold(True)
         self._txt_tags.setFont(font)
         self.meddle_base.set_tags(_tags)
-    
+
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
@@ -203,7 +203,7 @@ class MeddleWindow(QtGui.QWidget):
         logging.info("connection status changed: %s " % status)
         self._update_widgets()
 
-    @QtCore.pyqtSlot(str, str, str)
+    @QtCore.pyqtSlot(str, str, str, str)
     def _meddle_on_tag_notification(self, tag, channel, user, text):
         logging.info("tag '%s' has been mentioned on channel %s: %s",
                      tag, channel, text)

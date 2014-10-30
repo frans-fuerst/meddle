@@ -77,6 +77,7 @@ ToDo
 - [ ] setup.py file
 - [ ] reconnect
 - [ ] load conversation on join
+- [ ] notifications
 - [x] Multi room
 - [x] unsubscribe hashtags + tagging on enter + bold on active
 - [x] instructions on startup when missing libs (zmq/qt4/json)

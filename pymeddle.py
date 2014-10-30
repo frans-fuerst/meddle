@@ -17,7 +17,7 @@ except:
     print()
     print("or use your package manager to install 'python3-zmq'")
     sys.exit(-1)
-    
+
 import getpass
 from threading import Thread, Lock
 import pymeddle
@@ -43,7 +43,7 @@ def find_first_available_server(options):
                 pass
     else:
         return 'scibernetic.de'
-    
+
 class base:
 
     def __init__(self, handler):
@@ -61,7 +61,7 @@ class base:
                           help="meddle server tcp port")
 
         (options, args) = parser.parse_args()
-        
+
         _perstitent_settings = {}
         try:
             _perstitent_settings.update(ast.literal_eval(open('.meddle-default').read()))
@@ -69,14 +69,14 @@ class base:
         except Exception as e:
             print(e)
         print(_perstitent_settings)
-        
+
         self.context = zmq.Context()
         self._handler = handler
         self._my_id = 0
         self._subscriptions = []
         self._last_tags = set()
         self._username = options.username if options.username else system_username()
-        
+
         if options.servername:
             self._servername = options.servername
         else:
@@ -219,8 +219,10 @@ class base:
             if message.startswith("tag#"):
                 _tag = message
                 _channel = self._sub_socket.recv_string()
+                _user = self._sub_socket.recv_string()
                 _message = self._sub_socket.recv_string()
-                self._handler.meddle_on_tag_notification(_tag, _channel, _message)
+                self._handler.meddle_on_tag_notification(
+                    _tag, _channel, _user, _message)
             elif message.startswith("notify"):
                 _opcode = self._sub_socket.recv_string()
                 if _opcode == 'join_channel':
