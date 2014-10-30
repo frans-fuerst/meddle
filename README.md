@@ -65,18 +65,20 @@ ToDo
 ----
 
 === before public release
-- [ ] join an existing channel
-- [ ] notify/join on tag notification
-- [ ] refactor: server: one thread
-- [ ] config file (server, tags)
-- [ ] Join rooms
-- [ ] log messages (+timestamp)
-- [ ] Invite on hashtags
+- [ ] server: refactor: server: one thread
+- [ ] server: log messages (+timestamp)
+- [ ] server: user id persistence
 - [ ] Search in logs
 - [ ] Leave room
 - [ ] setup.py file
 - [ ] reconnect
 - [ ] load conversation on join
+- [ ] system notifications (on message/tag notification)
+- [ ] cookie based user verification
+- [x] join an existing channel
+- [x] notify/join on tag notification
+- [x] config file (server, tags)
+- [x] Invite on hashtags
 - [x] Multi room
 - [x] unsubscribe hashtags + tagging on enter + bold on active
 - [x] instructions on startup when missing libs (zmq/qt4/json)

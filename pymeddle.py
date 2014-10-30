@@ -17,7 +17,7 @@ except:
     print()
     print("or use your package manager to install 'python3-zmq'")
     sys.exit(-1)
-    
+
 import getpass
 from threading import Thread, Lock
 import pymeddle
@@ -43,7 +43,7 @@ def find_first_available_server(options):
                 pass
     else:
         return 'scibernetic.de'
-    
+
 class base:
 
     def __init__(self, handler):
@@ -61,26 +61,34 @@ class base:
                           help="meddle server tcp port")
 
         (options, args) = parser.parse_args()
-        
-        _perstitent_settings = {}
+
+        self._perstitent_settings = {}
+        self._perstitent_settings['tags'] = []
+
         try:
-            _perstitent_settings.update(ast.literal_eval(open('.meddle-default').read()))
-            print(ast.literal_eval(open('.meddle-default').read()))
+            self._perstitent_settings.update(
+                ast.literal_eval(open('.meddle-default').read()))
         except Exception as e:
             print(e)
-        print(_perstitent_settings)
-        
+
+        try:
+            self._perstitent_settings.update(
+                ast.literal_eval(open('.meddle').read()))
+        except Exception as e:
+            print(e)
+
+        print(self._perstitent_settings)
+
         self.context = zmq.Context()
         self._handler = handler
         self._my_id = 0
         self._subscriptions = []
-        self._last_tags = set()
         self._username = options.username if options.username else system_username()
-        
+
         if options.servername:
             self._servername = options.servername
         else:
-            self._servername = find_first_available_server(_perstitent_settings)
+            self._servername = find_first_available_server(self._perstitent_settings)
         self._serverport = options.serverport if options.serverport else 32100
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
@@ -101,8 +109,14 @@ class base:
                 ["create_channel".encode(),
                  self._my_id.encode(),
                  json.dumps(invited_users).encode()])
-            _new_channel = self._rpc_socket.recv_string()
-            self._join_channel(_new_channel)
+            return self._rpc_socket.recv_string()
+
+    def join_channel(self, channel):
+        if not channel in self._subscriptions:
+            self._subscriptions.append(channel)
+            self._handler.meddle_on_joined_channel(channel)
+            logging.info("talking on channel '%s'" % channel)
+            self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
 
     def connect(self):
         self._set_connection_status(False)
@@ -110,14 +124,25 @@ class base:
         _thread.daemon = True
         _thread.start()
 
-    def set_tags(self, tags):
+    def shutdown(self):
+        try:
+            open('.meddle', 'w').write(str(self._perstitent_settings))
+        except Exception as ex:
+            logging.warn(ex)
+
+    def set_tags(self, tags, force=False):
         _new_tags = set(tags)
-        for t in _new_tags - self._last_tags:
+        _old_tags = set() if force else set(self._perstitent_settings['tags'])
+        for t in _new_tags - _old_tags:
             print("subscribe '%s'" % t)
             self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
-        for t in self._last_tags - _new_tags:
+        for t in _old_tags - _new_tags:
             print("unsubscribe '%s'" % t)
-        self._last_tags = set(tags)
+            self._sub_socket.setsockopt_string(zmq.UNSUBSCRIBE, "tag#%s" % t)
+        self._perstitent_settings['tags'] = tags
+
+    def get_tags(self):
+        return self._perstitent_settings['tags']
 
     def get_users(self):
         answer = self._request("get_users")
@@ -172,26 +197,14 @@ class base:
         self._sub_socket = self.context.socket(zmq.SUB)
         self._sub_socket.connect("tcp://%s:%d" % (self._servername, self._serverport + 1))
 
+        self.set_tags(self._perstitent_settings['tags'], True)
+
         ## refactor! - should all go away
         if True:
 
             answer = self._request("hello %s" % self._username)
             self._my_id = answer[6:]
             logging.info("server: calls us '%s'" % self._my_id)
-
-            """
-            answer = self._request("get_channels")
-            _channels = answer.split()
-            logging.info("channels: %s" % _channels)
-
-            if _channels == []:
-                answer = self.create_channel()
-                _channel_to_join = answer
-            else:
-                _channel_to_join = _channels[0]
-
-            self._join_channel(_channel_to_join)
-            """
 
         _thread = Thread(target=lambda: self._recieve_messages())
         _thread.daemon = True
@@ -203,13 +216,6 @@ class base:
             if answer != 'ok':
                 logging.warn("we got '%s' as reply to ping", answer)
 
-    def _join_channel(self, channel):
-        if not channel in self._subscriptions:
-            self._subscriptions.append(channel)
-            self._handler.meddle_on_joined_channel(channel)
-            logging.info("talking on channel '%s'" % channel)
-            self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
-
     def _recieve_messages(self):
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'notify%s' % self._my_id)
@@ -219,13 +225,15 @@ class base:
             if message.startswith("tag#"):
                 _tag = message
                 _channel = self._sub_socket.recv_string()
+                _user = self._sub_socket.recv_string()
                 _message = self._sub_socket.recv_string()
-                self._handler.meddle_on_tag_notification(_tag, _channel, _message)
+                self._handler.meddle_on_tag_notification(
+                    _tag, _channel, _user, _message)
             elif message.startswith("notify"):
                 _opcode = self._sub_socket.recv_string()
                 if _opcode == 'join_channel':
                     _channel = self._sub_socket.recv_string()
-                    self._join_channel(_channel)
+                    self.join_channel(_channel)
                 else:
                     pass
 
@@ -236,7 +244,8 @@ class base:
                 _channel = message[:10]
                 _name = self._sub_socket.recv_string()
                 _text = message[10:]
-                logging.info("incoming message on %s %s: '%s'" % (_channel, _name, _text))
+                logging.info("incoming message on %s %s: '%s'",
+                             _channel, _name, _text)
                 self._handler.meddle_on_message(_channel, _name, _text)
 
 

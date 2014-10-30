@@ -7,10 +7,10 @@ try:
 except:
     print("you need the PyQt4 package installed for your running python instance.")
     print()
-    print("go to http://www.riverbankcomputing.co.uk/software/pyqt/download and" 
+    print("go to http://www.riverbankcomputing.co.uk/software/pyqt/download and"
           "get the package or use your package manager to install 'python3-pyqt4'")
     sys.exit(-1)
-    
+
 import logging
 
 import pymeddle
@@ -76,6 +76,19 @@ class MeddleWindow(QtGui.QWidget):
         self._init_ui()
         self.meddle_base.connect()
 
+        self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
+        self._on_txt_tags_returnPressed()
+        self._focus = True
+        self.installEventFilter(self)
+
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.WindowActivate:
+            self._focus = True
+        elif event.type()== QtCore.QEvent.WindowDeactivate:
+            self._focus = False
+
+        return False
+
     def _init_ui(self):
         logging.info("init_ui")
 
@@ -88,8 +101,7 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget = QtGui.QWidget()
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
-        
-        
+
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
         _lbl_users = QtGui.QLabel('online:')
@@ -119,14 +131,20 @@ class MeddleWindow(QtGui.QWidget):
 
         self._txt_tags.textChanged.connect(self._on_txt_tags_textChanged)
         self._txt_tags.returnPressed.connect(self._on_txt_tags_returnPressed)
-        
+
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
+        self._lst_channels.doubleClicked.connect(self._on_lst_channels_doubleClicked)
+        self._lst_notifications.doubleClicked.connect(self._on_lst_notifications_doubleClicked)
 
         self.setLayout(_layout)
 
         self.setGeometry(800, 100, 500, 500)
         self._update_window_title()
         self.show()
+
+        self._sys_icon = QtGui.QSystemTrayIcon()
+        self._sys_icon.setIcon(QtGui.QIcon.fromTheme("document-save"))
+        self._sys_icon.setVisible(True)
 
     @QtCore.pyqtSlot(str)
     def _on_txt_tags_textChanged(self, text):
@@ -144,10 +162,13 @@ class MeddleWindow(QtGui.QWidget):
         font.setBold(True)
         self._txt_tags.setFont(font)
         self.meddle_base.set_tags(_tags)
-    
+
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
+
+    def closeEvent(self, event):
+        self.meddle_base.shutdown()
 
     def _update_widgets(self):
         self._update_window_title()
@@ -181,7 +202,26 @@ class MeddleWindow(QtGui.QWidget):
         _user = self._lst_users.item(index.row()).text()
         logging.debug("doubleclick on user %s" % _user)
         _channel = self.meddle_base.create_channel([_user])
-        #print(_channel)
+        self.meddle_base.join_channel(_channel)
+
+    def _on_lst_channels_doubleClicked(self, index):
+        _channel = self._lst_channels.item(index.row()).text()
+        logging.debug("doubleclick on channel %s" % _channel)
+        self.meddle_base.join_channel(_channel)
+
+    def _on_lst_notifications_doubleClicked(self, index):
+        _line = self._lst_notifications.item(index.row()).text()
+        logging.debug("doubleclick on notification %s" % _line)
+        _channel = _line.split(':')
+        if len(_channel) > 0:
+            _channel = _channel[0]
+            self.meddle_base.join_channel(_channel)
+
+    def _show_notification(self, text):
+        if not self._focus:
+            self._sys_icon.showMessage(
+                'hey %s' % self.meddle_base.current_username(),
+                text+"\n\n\n\n")
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
@@ -197,17 +237,19 @@ class MeddleWindow(QtGui.QWidget):
         _chat_window = chat_widget(self.meddle_base, channel)
         self._chats[channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
+        self._show_notification("you joined channel %s" % channel)
 
     @QtCore.pyqtSlot(bool)
     def _meddle_on_connection_established(self, status):
         logging.info("connection status changed: %s " % status)
         self._update_widgets()
 
-    @QtCore.pyqtSlot(str, str, str)
+    @QtCore.pyqtSlot(str, str, str, str)
     def _meddle_on_tag_notification(self, tag, channel, user, text):
         logging.info("tag '%s' has been mentioned on channel %s: %s",
                      tag, channel, text)
         self._lst_notifications.addItem("%s: %s: %s" % (channel, user, text))
+        self._show_notification("%s: %s: %s" % (channel, user, text))
 
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
