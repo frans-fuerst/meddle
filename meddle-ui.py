@@ -78,6 +78,16 @@ class MeddleWindow(QtGui.QWidget):
 
         self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
         self._on_txt_tags_returnPressed()
+        self._focus = True
+        self.installEventFilter(self)
+
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.WindowActivate:
+            self._focus = True
+        elif event.type()== QtCore.QEvent.WindowDeactivate:
+            self._focus = False
+
+        return False
 
     def _init_ui(self):
         logging.info("init_ui")
@@ -131,6 +141,10 @@ class MeddleWindow(QtGui.QWidget):
         self.setGeometry(800, 100, 500, 500)
         self._update_window_title()
         self.show()
+
+        self._sys_icon = QtGui.QSystemTrayIcon()
+        self._sys_icon.setIcon(QtGui.QIcon.fromTheme("document-save"))
+        self._sys_icon.setVisible(True)
 
     @QtCore.pyqtSlot(str)
     def _on_txt_tags_textChanged(self, text):
@@ -203,6 +217,12 @@ class MeddleWindow(QtGui.QWidget):
             _channel = _channel[0]
             self.meddle_base.join_channel(_channel)
 
+    def _show_notification(self, text):
+        if not self._focus:
+            self._sys_icon.showMessage(
+                'hey %s' % self.meddle_base.current_username(),
+                text+"\n\n\n\n")
+
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
         print("%s %s %s" %(channel, name, text))
@@ -217,6 +237,7 @@ class MeddleWindow(QtGui.QWidget):
         _chat_window = chat_widget(self.meddle_base, channel)
         self._chats[channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
+        self._show_notification("you joined channel %s" % channel)
 
     @QtCore.pyqtSlot(bool)
     def _meddle_on_connection_established(self, status):
@@ -228,6 +249,7 @@ class MeddleWindow(QtGui.QWidget):
         logging.info("tag '%s' has been mentioned on channel %s: %s",
                      tag, channel, text)
         self._lst_notifications.addItem("%s: %s: %s" % (channel, user, text))
+        self._show_notification("%s: %s: %s" % (channel, user, text))
 
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):

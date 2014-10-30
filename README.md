@@ -65,8 +65,9 @@ ToDo
 ----
 
 === before public release
-- [ ] refactor: server: one thread
-- [ ] log messages (+timestamp)
+- [ ] server: refactor: server: one thread
+- [ ] server: log messages (+timestamp)
+- [ ] server: user id persistence
 - [ ] Search in logs
 - [ ] Leave room
 - [ ] setup.py file
