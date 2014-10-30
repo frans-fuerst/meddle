@@ -76,6 +76,9 @@ class MeddleWindow(QtGui.QWidget):
         self._init_ui()
         self.meddle_base.connect()
 
+        self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
+        self._on_txt_tags_returnPressed()
+
     def _init_ui(self):
         logging.info("init_ui")
 
@@ -88,7 +91,6 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget = QtGui.QWidget()
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
-
 
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
@@ -121,6 +123,8 @@ class MeddleWindow(QtGui.QWidget):
         self._txt_tags.returnPressed.connect(self._on_txt_tags_returnPressed)
 
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
+        self._lst_channels.doubleClicked.connect(self._on_lst_channels_doubleClicked)
+        self._lst_notifications.doubleClicked.connect(self._on_lst_notifications_doubleClicked)
 
         self.setLayout(_layout)
 
@@ -148,6 +152,9 @@ class MeddleWindow(QtGui.QWidget):
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
+
+    def closeEvent(self, event):
+        self.meddle_base.shutdown()
 
     def _update_widgets(self):
         self._update_window_title()
@@ -181,7 +188,20 @@ class MeddleWindow(QtGui.QWidget):
         _user = self._lst_users.item(index.row()).text()
         logging.debug("doubleclick on user %s" % _user)
         _channel = self.meddle_base.create_channel([_user])
-        #print(_channel)
+        self.meddle_base.join_channel(_channel)
+
+    def _on_lst_channels_doubleClicked(self, index):
+        _channel = self._lst_channels.item(index.row()).text()
+        logging.debug("doubleclick on channel %s" % _channel)
+        self.meddle_base.join_channel(_channel)
+
+    def _on_lst_notifications_doubleClicked(self, index):
+        _line = self._lst_notifications.item(index.row()).text()
+        logging.debug("doubleclick on notification %s" % _line)
+        _channel = _line.split(':')
+        if len(_channel) > 0:
+            _channel = _channel[0]
+            self.meddle_base.join_channel(_channel)
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
