@@ -30,10 +30,11 @@ class chat_output_widget(QtGui.QPlainTextEdit):
 
 class chat_widget(QtGui.QWidget):
 
-    close_window = QtCore.pyqtSignal(QtGui.QWidget) 
+    close_window = QtCore.pyqtSignal(str) 
 
-    def __init__(self, meddle_base, channel):
+    def __init__(self, parent, meddle_base, channel):
         super(chat_widget, self).__init__()
+        self.parent_item = parent
         self._channel = channel
         self._meddle_base = meddle_base
         self.init_ui()
@@ -79,7 +80,7 @@ class chat_widget(QtGui.QWidget):
         self.setAutoFillBackground(True)
     
     def on_pb_exit_pressed(self):
-        self.close_window.emit(self)
+        self.close_window.emit(self._channel)
         
     def on_txt_message_edit_returnPressed(self):
         self._meddle_base.publish(self._channel, self._txt_message_edit.text())
@@ -254,9 +255,9 @@ class MeddleWindow(QtGui.QWidget):
     def _meddle_on_joined_channel(self, channel):
         _item1 = QtGui.QListWidgetItem()
         _item1.setSizeHint(QtCore.QSize(100, 200))
-
+        
         self._lst_rooms.addItem(_item1)
-        _chat_window = chat_widget(self.meddle_base, channel)
+        _chat_window = chat_widget(_item1, self.meddle_base, channel)
         _chat_window.close_window.connect(self._on_chat_window_close_window)
         
         for t, name, text in self.meddle_base.get_log(channel):
@@ -266,10 +267,19 @@ class MeddleWindow(QtGui.QWidget):
         self._lst_rooms.setItemWidget(_item1, _chat_window)
         self._show_notification("you joined channel %s" % channel)
 
-    def _on_chat_window_close_window(self, window):
-        del self._chats[channel]
+    def _on_chat_window_close_window(self, channel):
+        self.meddle_base.leave_channel(channel)
+
+    @QtCore.pyqtSlot(str)
+    def _meddle_on_leave_channel(self, channel):
+        #window.parent_item.setParent(None)
+        #del window.parent_item
+        #self._lst_rooms.removeItemWidget(window.parent_item)
+        #self._lst_rooms.sortItems()
+        #del self._chats[channel].
         #self._chats.remove(window)
         #window.setParent(None)
+        pass
     
     @QtCore.pyqtSlot(bool)
     def _meddle_on_connection_established(self, status):
@@ -298,6 +308,12 @@ class MeddleWindow(QtGui.QWidget):
     def meddle_on_joined_channel(self, channel):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_joined_channel",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(str, channel))
+
+    def meddle_on_leave_channel(self, channel):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_leave_channel",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(str, channel))
 
