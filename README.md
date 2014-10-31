@@ -69,12 +69,13 @@ ToDo
 - [ ] server: log messages (+timestamp)
 - [ ] server: user id persistence
 - [ ] Search in logs
-- [ ] Leave room
 - [ ] setup.py file
 - [ ] reconnect
-- [ ] load conversation on join
-- [ ] system notifications (on message/tag notification)
 - [ ] cookie based user verification
+- [ ] @name notification
+- [x] Leave room
+- [x] load conversation on join
+- [x] system notifications (on message/tag notification)
 - [x] join an existing channel
 - [x] notify/join on tag notification
 - [x] config file (server, tags)

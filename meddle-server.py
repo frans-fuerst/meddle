@@ -7,13 +7,16 @@ import string
 import logging
 import json
 import time
+import datetime
 
+def timestamp_str():
+    return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
 
-def publish(socket, participant, channel, text):
+def publish(socket, timestamp, participant, channel, text):
     logging.debug("%s publishes to '%s': '%s'" % (participant, channel, text))
     socket.send_multipart([(channel + text).encode(), participant.encode()])
     with open('_%s.log' % channel, 'a') as f:
-        f.write("%s: %s: %s: %s" % ("time", channel, participant, text))
+        f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
         f.write("\n")
 
 def random_string(N):
@@ -203,7 +206,7 @@ def main():
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
                     handle_tags(_pub_socket, _channel, _name, _text)
-                    publish(_pub_socket, _name, _channel, _text)
+                    publish(_pub_socket, timestamp_str(), _name, _channel, _text)
                     if not _channel in _logs:
                         _logs[_channel] = []
                     _logs[_channel].append(("", _name, _text))
