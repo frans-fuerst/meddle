@@ -117,14 +117,14 @@ class base:
             self._handler.meddle_on_joined_channel(channel)
             logging.info("talking on channel '%s'" % channel)
             self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
-    
+
     def leave_channel(self, channel):
         if channel in self._subscriptions:
-            #del self._subscriptions[channel]
+            self._subscriptions.remove(channel)
             self._handler.meddle_on_leave_channel(channel)
             logging.info("leaving channel '%s'" % channel)
             self._sub_socket.setsockopt_string(zmq.UNSUBSCRIBE, channel)
-    
+
     def connect(self):
         self._set_connection_status(False)
         _thread = Thread(target=lambda: self._rpc_thread())
