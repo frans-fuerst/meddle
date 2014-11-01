@@ -66,13 +66,14 @@ ToDo
 
 === before public release
 - [ ] server: refactor: server: one thread
-- [ ] server: log messages (+timestamp)
 - [ ] server: user id persistence
 - [ ] Search in logs
 - [ ] setup.py file
-- [ ] reconnect
 - [ ] cookie based user verification
 - [ ] @name notification
+- [ ] check server/client versions
+- [x] reconnect
+- [x] server: log messages (+timestamp)
 - [x] Leave room
 - [x] load conversation on join
 - [x] system notifications (on message/tag notification)

@@ -197,7 +197,11 @@ class base:
         if status != self._connection_status:
             self._connection_status = status
             self._handler.meddle_on_connection_established(status)
-
+    def _hello(self):
+        answer = self._request(("hello", self._username))
+        self._my_id = answer[6:]
+        logging.info("server: calls us '%s'" % self._my_id)
+        
     def _rpc_thread(self):
 
         _rpc_server_address = "tcp://%s:%d" % (self._servername, self._serverport)
@@ -212,10 +216,7 @@ class base:
 
         ## refactor! - should all go away
         if True:
-
-            answer = self._request("hello %s" % self._username)
-            self._my_id = answer[6:]
-            logging.info("server: calls us '%s'" % self._my_id)
+            self._hello()
 
         _thread = Thread(target=lambda: self._recieve_messages())
         _thread.daemon = True
@@ -225,7 +226,8 @@ class base:
             time.sleep(2)
             answer = self._request(['ping', self._my_id])
             if answer != 'ok':
-                logging.warn("we got '%s' as reply to ping", answer)
+                logging.warn("we got '%s' as reply to ping, let's say hello again..", answer)
+                self._hello()                
 
     def _recieve_messages(self):
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')

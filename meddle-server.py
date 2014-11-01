@@ -141,8 +141,8 @@ def main():
             _message = _rpc_socket.recv_string()
             # logging.debug("got '%s' (%s)" % (_message, type(_message)))
 
-            if _message.startswith("hello "):
-                _name = _message[6:].strip()
+            if _message == "hello":
+                _name = _rpc_socket.recv_string().strip()
                 logging.debug("hello from '%s'" % _name)
                 _is_new, _id, _user = _users.find_or_create_name(_name)
 
