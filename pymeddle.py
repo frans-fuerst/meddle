@@ -83,8 +83,11 @@ class base:
         self._handler = handler
         self._my_id = 0
         self._subscriptions = []
-        self._username = options.username if options.username else system_username()
+        
 
+        if options.username: self._username = options.username
+        else: self._username = self._perstitent_settings['username'] if 'username' in self._perstitent_settings else system_username()
+        
         if options.servername:
             self._servername = options.servername
         else:
