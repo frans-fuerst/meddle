@@ -230,6 +230,7 @@ class base:
                 self._hello()                
 
     def _recieve_messages(self):
+        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'channels_update')
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'notify%s' % self._my_id)
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
@@ -249,8 +250,10 @@ class base:
                     self.join_channel(_channel)
                 else:
                     pass
-
-            elif message.startswith("user_update"):
+            elif message == "channels_update":
+                self._handler.meddle_on_channels_update(
+                    json.loads(self._sub_socket.recv_string()))
+            elif message == "user_update":
                 _extra_info = self._sub_socket.recv_string()
                 self._handler.meddle_on_user_update(json.loads(_extra_info))
             else:

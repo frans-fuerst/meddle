@@ -131,6 +131,7 @@ class MeddleWindow(QtGui.QWidget):
 
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
+        self._lst_users.setMaximumSize(QtCore.QSize(200, 1000))
         _lbl_users = QtGui.QLabel('online:')
         _lbl_channels = QtGui.QLabel('channels:')
         _hlayout1 = QtGui.QGridLayout()
@@ -223,7 +224,7 @@ class MeddleWindow(QtGui.QWidget):
         self._lst_channels.clear()
         logging.info("channels: %s" % channels)
         for c in channels:
-            self._lst_channels.addItem("%s: %s" % (c, str(channels[c])))
+            self._lst_channels.addItem("%s: %s" % (c, ", ". join(channels[c])))
 
     def _on_lst_users_doubleClicked(self, index):
         _user = self._lst_users.item(index.row()).text()
@@ -232,7 +233,7 @@ class MeddleWindow(QtGui.QWidget):
         self.meddle_base.join_channel(_channel)
 
     def _on_lst_channels_doubleClicked(self, index):
-        _channel = self._lst_channels.item(index.row()).text()
+        _channel = self._lst_channels.item(index.row()).text().split(':')[0]
         logging.debug("doubleclick on channel %s" % _channel)
         self.meddle_base.join_channel(_channel)
 
@@ -302,7 +303,11 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
         self._update_user_list(users)
-
+        
+    @QtCore.pyqtSlot(dict)
+    def _meddle_on_channels_update(self, channels):
+        self._update_channel_list(channels)
+    
     def meddle_on_message(self, channel, name, text):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_message",
@@ -337,7 +342,14 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(str, channel),
                 QtCore.Q_ARG(str, user),
                 QtCore.Q_ARG(str, text))
-
+        
+    def meddle_on_channels_update(self, channels):
+        print(type(channels))
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_channels_update",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(dict, channels))
+        
     def meddle_on_user_update(self, users):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_user_update",

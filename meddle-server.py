@@ -38,6 +38,12 @@ def publish_user_list(socket, users):
             ["user_update".encode(),
              json.dumps(users.users_online()).encode()])
 
+def publish_channel_list(socket, channels):
+    socket.send_multipart(
+            ["channels_update".encode(),
+             json.dumps(
+                 {x:list(y.participants) for x, y in channels.items()}).encode()])             
+
 def notify_user(socket, user_id, msg):
     socket.send_multipart(
         tuple(str(x).encode()
@@ -46,6 +52,13 @@ def notify_user(socket, user_id, msg):
 class channel:
     def __init__(self):
         self.participants = set()
+        
+    def add_participant(self, name):
+        if not name in self.participants:
+            self.participants.add(name) #todo: should be id
+            return True
+        return False
+        
         
 class user:
     def __init__(self):
@@ -174,11 +187,12 @@ def main():
                     for uid in [_users.get_id(u) for u in _invited_users]:
                         notify_user(_pub_socket,
                                     uid, ('join_channel', _channel_name))
+                    publish_channel_list(_pub_socket, _channels)
 
             elif _message.startswith("get_channels"):
                 _rpc_socket.send_string(
                     json.dumps(
-                        {x:list(y.participants) for x,y in _channels.items()}))
+                        {x:list(y.participants) for x, y in _channels.items()}))
 
             elif _message.startswith("get_users"):
                 _rpc_socket.send_string(json.dumps(_users.users_online()))
@@ -212,12 +226,12 @@ def main():
                 elif _channel not in _channels:
                     logging.warn("tried to send on channel %s which is currently not known",
                                  _channel)
-                    print(_channels.keys())
                     _rpc_socket.send_string("nok")
                 else:
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
-                    _channels[_channel].participants.add(_name) #todo: should be id
+                    if _channels[_channel].add_participant(_name):
+                        publish_channel_list(_pub_socket, _channels)
                     handle_tags(_pub_socket, _channel, _name, _text)
                     publish(_pub_socket, timestamp_str(), _name, _channel, _text)
                     if not _channel in _logs:
