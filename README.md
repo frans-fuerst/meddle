@@ -72,6 +72,7 @@ ToDo
 - [ ] cookie based user verification
 - [ ] @name notification
 - [ ] check server/client versions
+- [ ] see users with channel names
 - [x] reconnect
 - [x] server: log messages (+timestamp)
 - [x] Leave room

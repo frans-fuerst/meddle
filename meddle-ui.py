@@ -223,7 +223,7 @@ class MeddleWindow(QtGui.QWidget):
         self._lst_channels.clear()
         logging.info("channels: %s" % channels)
         for c in channels:
-            self._lst_channels.addItem(c)
+            self._lst_channels.addItem("%s: %s" % (c, str(channels[c])))
 
     def _on_lst_users_doubleClicked(self, index):
         _user = self._lst_users.item(index.row()).text()

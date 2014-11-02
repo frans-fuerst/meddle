@@ -157,7 +157,7 @@ class base:
 
     def get_channels(self):
         answer = self._request("get_channels")
-        _channels = answer.split()
+        _channels = json.loads(answer)
         logging.info("channels: %s" % _channels)
         return _channels
 

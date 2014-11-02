@@ -43,6 +43,10 @@ def notify_user(socket, user_id, msg):
         tuple(str(x).encode()
               for x in ("notify%d" % user_id,) + tuple(msg)))
 
+class channel:
+    def __init__(self):
+        self.participants = set()
+        
 class user:
     def __init__(self):
         self.last_ping = time.time()
@@ -165,13 +169,16 @@ def main():
                     _channel_name = random_string(10)
                     # todo - check collisions
                     _rpc_socket.send_string(_channel_name)
-                    _channels[_channel_name] = None
+                    _channels[_channel_name] = channel()
+                    _channels[_channel_name].participants.add(_name)
                     for uid in [_users.get_id(u) for u in _invited_users]:
                         notify_user(_pub_socket,
                                     uid, ('join_channel', _channel_name))
 
             elif _message.startswith("get_channels"):
-                _rpc_socket.send_string(" ".join(_channels.keys()))
+                _rpc_socket.send_string(
+                    json.dumps(
+                        {x:list(y.participants) for x,y in _channels.items()}))
 
             elif _message.startswith("get_users"):
                 _rpc_socket.send_string(json.dumps(_users.users_online()))
@@ -202,9 +209,15 @@ def main():
                     logging.warn("user with id %d marked offline but sending",
                                  _sender_id)
                     _rpc_socket.send_string("nok")
+                elif _channel not in _channels:
+                    logging.warn("tried to send on channel %s which is currently not known",
+                                 _channel)
+                    print(_channels.keys())
+                    _rpc_socket.send_string("nok")
                 else:
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
+                    _channels[_channel].participants.add(_name) #todo: should be id
                     handle_tags(_pub_socket, _channel, _name, _text)
                     publish(_pub_socket, timestamp_str(), _name, _channel, _text)
                     if not _channel in _logs:
