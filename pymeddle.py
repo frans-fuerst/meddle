@@ -141,7 +141,7 @@ class base:
             logging.warn(ex)
 
     def set_tags(self, tags, force=False):
-        _new_tags = set(tags)
+        _new_tags = set((t.lower() for t in tags))
         _old_tags = set() if force else set(self._perstitent_settings['tags'])
         for t in _new_tags - _old_tags:
             print("subscribe '%s'" % t)

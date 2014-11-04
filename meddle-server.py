@@ -24,14 +24,21 @@ def random_string(N):
         random.choice(string.ascii_uppercase + string.digits)
         for _ in range(N))
 
+def replace(in_str, src_characters, tgt_characters=' '):
+    for c in src_characters:
+        in_str = in_str.replace(c, tgt_characters)
+    return in_str
+
 def handle_tags(socket, channel, user, text):
-    _contained_tags = [x for x in (text.replace('.', ' ')).split(' ')
+    _contained_tags = [x.lower() for x in replace(text, '.,;!:\'"').split(' ')
                        if len(x) > 1 and x[0] == '#']
     logging.info("tags mentioned: %s", _contained_tags)
     for t in _contained_tags:
         socket.send_multipart(
             tuple(str(x).encode()
                   for x in ("tag%s" % t, channel, user, text)))
+        
+    return _contained_tags
 
 def publish_user_list(socket, users):
     socket.send_multipart(
@@ -52,13 +59,21 @@ def notify_user(socket, user_id, msg):
 class channel:
     def __init__(self):
         self.participants = set()
+        self.tags = {}
         
     def add_participant(self, name):
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
             return True
         return False
-        
+
+    def add_tags(self, tags):
+        if len(tags) == 0: return False
+        for t in tags:
+            if not t in self.tags:
+                self.tags[t] = []
+            self.tags[t].append(time.time())
+        return True
         
 class user:
     def __init__(self):
@@ -232,7 +247,9 @@ def main():
                     # todo: handle wrong user
                     if _channels[_channel].add_participant(_name):
                         publish_channel_list(_pub_socket, _channels)
-                    handle_tags(_pub_socket, _channel, _name, _text)
+                    _tags = handle_tags(_pub_socket, _channel, _name, _text)
+                    if _channels[_channel].add_tags(_tags):
+                        pass
                     publish(_pub_socket, timestamp_str(), _name, _channel, _text)
                     if not _channel in _logs:
                         _logs[_channel] = []
