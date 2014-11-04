@@ -68,10 +68,19 @@ ToDo
 - [ ] server: refactor: server: one thread
 - [ ] server: user id persistence
 - [ ] Search in logs
-- [ ] setup.py file
+- [ ] setup.py file + program icon
 - [ ] cookie based user verification
 - [ ] @name notification
 - [ ] check server/client versions
+- [ ] see available tags
+- [ ] case insensitivity for tags
+- [ ] optional notification on messages
+- [ ] optional notification on user join
+- [ ] concept for getting missed notification
+- [ ] resizable UI elements
+- [ ] names for channels
+- [ ] sort channels by activity
+- [ ] show timestamps with the posts
 - [x] see users with channel names
 - [x] reconnect
 - [x] server: log messages (+timestamp)
