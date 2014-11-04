@@ -253,8 +253,8 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
-        print("%s %s %s" %(channel, name, text))
         self._chats[channel].on_message(name, text)
+        self._show_notification("%s on %s:\n%s" %(name, channel, text))
 
     @QtCore.pyqtSlot(str)
     def _meddle_on_joined_channel(self, channel):
@@ -303,11 +303,11 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
         self._update_user_list(users)
-        
+
     @QtCore.pyqtSlot(dict)
     def _meddle_on_channels_update(self, channels):
         self._update_channel_list(channels)
-    
+
     def meddle_on_message(self, channel, name, text):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_message",
@@ -342,14 +342,13 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(str, channel),
                 QtCore.Q_ARG(str, user),
                 QtCore.Q_ARG(str, text))
-        
+
     def meddle_on_channels_update(self, channels):
-        print(type(channels))
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_channels_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(dict, channels))
-        
+
     def meddle_on_user_update(self, users):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_user_update",
