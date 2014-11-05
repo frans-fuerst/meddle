@@ -164,6 +164,11 @@ class base:
         logging.info("channels: %s" % _channels)
         return _channels
 
+    def get_active_tags(self):
+        answer = self._request("get_active_tags")
+        _tags = json.loads(answer)
+        return _tags
+
     def get_log(self, channel):
         answer = self._request(("get_log", channel))
         return json.loads(answer)
@@ -232,11 +237,13 @@ class base:
                 logging.warn("we got '%s' as reply to ping, let's say hello again..", answer)
                 self._hello()                
 
-    def _recieve_messages(self):
+    def _recieve_messages(self):        
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'channels_update')
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
+        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'tags_update')
         self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'notify%s' % self._my_id)
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+        
         while True:
             message = self._sub_socket.recv_string()
             if message.startswith("tag#"):
@@ -259,6 +266,9 @@ class base:
             elif message == "user_update":
                 _extra_info = self._sub_socket.recv_string()
                 self._handler.meddle_on_user_update(json.loads(_extra_info))
+            elif message == "tags_update":
+                _tags = json.loads(self._sub_socket.recv_string())
+                self._handler.meddle_on_tags_update(_tags)
             else:
                 _channel = message[:10]
                 _name = self._sub_socket.recv_string()
