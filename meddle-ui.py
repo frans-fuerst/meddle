@@ -29,8 +29,13 @@ class chat_output_widget(QtGui.QPlainTextEdit):
 
 def set_bold(widget, bold):
     font = widget.font()
-    font.setWeight(QtGui.QFont.Bold)
+    #font.setWeight(QtGui.QFont.Bold)
     font.setBold(bold)
+    widget.setFont(font)
+
+def set_font_size(widget, size):
+    font = widget.font()
+    font.setPointSize(size)
     widget.setFont(font)
 
 class chat_widget(QtGui.QWidget):
@@ -133,18 +138,19 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget = QtGui.QWidget()
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
-        
+
         #_lbl_hot_tags_cpt = QtGui.QLabel('hot tags:')
-        self._lbl_hot_tags = QtGui.QLabel('eins zwei') # todo align left, bold, font
+        self._lbl_hot_tags = QtGui.QLabel('') # todo align left, small font
         set_bold(self._lbl_hot_tags, True)
-        
+        set_font_size(self._lbl_hot_tags, 8)
+
         _hlayout3 = QtGui.QHBoxLayout()
         _hlayout3.setMargin(0)
         #_hlayout3.addWidget(_lbl_hot_tags_cpt)
         _hlayout3.addWidget(self._lbl_hot_tags)
         _hlayout3_widget = QtGui.QWidget()
         _hlayout3_widget.setLayout(_hlayout3)
-        _hlayout3_widget.setMaximumSize(QtCore.QSize(3000,100))
+        #_hlayout3_widget.setMaximumSize(QtCore.QSize(3000,100))
 
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
@@ -239,11 +245,12 @@ class MeddleWindow(QtGui.QWidget):
             self._lst_channels.addItem("%s: %s" % (c, ", ". join(channels[c])))
 
     def _update_active_tags_list(self, tags):
-        _tags = [(n, len(l)) for n, l in tags.items()][:4]
+        _tags = sorted([(n, len(l)) for n, l in tags.items()],
+                       key=lambda x: x[1], reverse=True)[:10]
         self._lbl_hot_tags.setText(
-            "  ".join(
-                ["%s (%d)" % (t[1:], c) for t, c in _tags]))
-        
+            "   ".join(
+                [("%s [%d]" % (t[1:], c)) if c > 1 else t[1:] for t, c in _tags]))
+
     def _on_lst_users_doubleClicked(self, index):
         _user = self._lst_users.item(index.row()).text()
         logging.debug("doubleclick on user %s" % _user)
@@ -376,7 +383,7 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_meddle_on_user_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(list, users))
-        
+
     def meddle_on_tags_update(self, tags):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_tags_update",
@@ -389,8 +396,6 @@ def main():
     ex = MeddleWindow()
     sys.exit(app.exec_())
 
-import datetime
-#st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 if __name__ == "__main__":
     logging.basicConfig(

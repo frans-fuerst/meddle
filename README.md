@@ -65,26 +65,45 @@ ToDo
 ----
 
 === before public release
+
+- [ ] bugfix: Wenn man einen Kanal öffnet und das Fenster nicht groß genug +
+      ist, dann verschwindet der Kanal beim Großziehen des Fensters +
+      Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
+      erst nochmal mit der Fenstergröße rumspielen.
 - [ ] server: refactor: server: one thread
 - [ ] server: user id persistence
-- [ ] Search in logs
+- [ ] search in logs
 - [ ] setup.py file + program icon
 - [ ] cookie based user verification
 - [ ] @name notification
 - [ ] check server/client versions
-- [ ] see available tags
-- [ ] case insensitivity for tags
-- [ ] optional notification on messages
 - [ ] optional notification on user join
 - [ ] concept for getting missed notification
 - [ ] resizable UI elements
 - [ ] names for channels
-- [ ] sort channels by activity
+- [ ] sort channels by importance (activity, contribution, hashtags)
+- [ ] show channel subscribers (currently only contributors)
 - [ ] show timestamps with the posts
+- [ ] set username on first startup
+
+=== after public release
+
+- [ ] option modification dialog
+- [ ] sync/async cleanup: make all calls fast and async where needed
+- [ ] Send files
+- [ ] WebClient (to circumvent http/proxy restrictions)
+- [ ] Android Client
+- [ ] encryption / authentication
+
+=== done
+
+- [x] see available tags
+- [x] case insensitivity for tags
+- [x] optional notification on messages
 - [x] see users with channel names
 - [x] reconnect
 - [x] server: log messages (+timestamp)
-- [x] Leave room
+- [x] leave room
 - [x] load conversation on join
 - [x] system notifications (on message/tag notification)
 - [x] join an existing channel
@@ -101,13 +120,6 @@ ToDo
 - [x] Recognize hashtags
 - [x] list users
 - [x] Watchdog / connection status
-
-=== after public release
-- [ ] sync/async cleanup: make all calls fast and async where needed
-- [ ] Send files
-- [ ] WebClient (to circumvent http/proxy restrictions)
-- [ ] Android Client
-- [ ] encryption / authentication
 
 
 Architecture:
