@@ -281,6 +281,13 @@ class MeddleWindow(QtGui.QWidget):
         self._chats[channel].on_message(name, text)
         self._show_notification("%s on %s:\n%s" %(name, channel, text))
 
+    @QtCore.pyqtSlot(bool, int, int, str)
+    def _meddle_on_version_check(self, status, v_server, v_own, message):
+        QtGui.QMessageBox.about( 
+            self, "meddle", "could not connect to server (server: %s, own: %s)" % 
+            (v_server, v_own))
+        self.close()
+
     @QtCore.pyqtSlot(str)
     def _meddle_on_joined_channel(self, channel):
         _item1 = QtGui.QListWidgetItem()
@@ -389,7 +396,16 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_meddle_on_tags_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(dict, tags))
-
+        
+    def meddle_on_version_check(self, success, v_server, v_own, message):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_version_check",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(bool, success),
+                QtCore.Q_ARG(int, v_server),
+                QtCore.Q_ARG(int, v_own),
+                QtCore.Q_ARG(str, message))
+    
 def main():
     logging.info("main")
     app = QtGui.QApplication(sys.argv)

@@ -84,7 +84,6 @@ class base:
         self._my_id = 0
         self._subscriptions = []
         
-
         if options.username: self._username = options.username
         else: self._username = self._perstitent_settings['username'] if 'username' in self._perstitent_settings else system_username()
         
@@ -95,6 +94,7 @@ class base:
         self._serverport = options.serverport if options.serverport else 32100
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
+        self._version = 6
 
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
@@ -205,11 +205,20 @@ class base:
         if status != self._connection_status:
             self._connection_status = status
             self._handler.meddle_on_connection_established(status)
+            
     def _hello(self):
-        answer = self._request(("hello", self._username))
-        self._my_id = answer[6:]
-        logging.info("server: calls us '%s'" % self._my_id)
-        
+        _answer = self._request(("hello", 
+                                 json.dumps({'name':self._username, 
+                                             'version':self._version})))
+        _answer = json.loads(_answer)
+        if 'accepted' in _answer:# and _answer['accepted']:
+            self._my_id = _answer['id']
+            logging.info("server: calls us '%s', has version %d (own: %s)", 
+                         self._my_id, _answer['version'], self._version)
+        else:
+            self._handler.meddle_on_version_check(
+                False, _answer['version'], self._version, 'mismatch')
+            
     def _rpc_thread(self):
 
         _rpc_server_address = "tcp://%s:%d" % (self._servername, self._serverport)
