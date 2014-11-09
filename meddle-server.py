@@ -169,6 +169,7 @@ def main():
     _channels = {}
     _all_tags = {}
     _logs = {}
+    _own_version = 6
     _port_rpc = 32100
     _port_pub = 32101
 
@@ -200,14 +201,24 @@ def main():
             # logging.debug("got '%s' (%s)" % (_message, type(_message)))
 
             if _message == "hello":
-                _name = _rpc_socket.recv_string().strip()
-                logging.debug("hello from '%s'" % _name)
-                _is_new, _id, _user = _users.find_or_create_name(_name)
-
-                _rpc_socket.send_string("hello %d" % _id)
-                if _is_new:
-                     # todo: send only update-info
-                    publish_user_list(_pub_socket, _users)
+                _answer = json.loads(_rpc_socket.recv_string())
+                _name = _answer['name']
+                _version = _answer['version']
+                logging.debug("hello from '%s' with client version %d" % (_name, _version))
+                if _version != _own_version:
+                    _rpc_socket.send_string(json.dumps({'accepted': False,
+                                                        'version': _own_version}))
+                else:
+                    _is_new, _id, _user = _users.find_or_create_name(_name)
+    
+                    _rpc_socket.send_string(json.dumps({'accepted': True,
+                                                        'id': _id,
+                                                        'version': _own_version,
+                                                        'sub_port': _port_pub}))
+                    
+                    if _is_new:
+                         # todo: send only update-info
+                        publish_user_list(_pub_socket, _users)
 
             elif _message == "create_channel":
                 _sender_id = int(_rpc_socket.recv_string())
