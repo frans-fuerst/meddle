@@ -146,7 +146,7 @@ class base:
             logging.warn(ex)
 
     def set_tags(self, tags, force=False):
-        _new_tags = set(tags)
+        _new_tags = set((t.lower() for t in tags))
         _old_tags = set() if force else set(self._perstitent_settings['tags'])
         for t in _new_tags - _old_tags:
             logging.info("subscribe '%s'" % t)
@@ -168,6 +168,11 @@ class base:
         _channels = json.loads(answer)
         logging.info("channels: %s" % _channels)
         return _channels
+
+    def get_active_tags(self):
+        answer = self._request("get_active_tags")
+        _tags = json.loads(answer)
+        return _tags
 
     def get_log(self, channel):
         answer = self._request(("get_log", channel))
@@ -240,8 +245,10 @@ class base:
     def _recieve_messages(self):
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'channels_update'.encode('utf-8'))
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'user_update'.encode('utf-8'))
+        self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'tags_update'.encode('utf-8'))
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, ('notify%s' % self._my_id).encode('utf-8'))
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+        
         while True:
             message = self._sub_socket.recv_string()
             if message.startswith("tag#"):
@@ -264,6 +271,9 @@ class base:
             elif message == "user_update":
                 _extra_info = self._sub_socket.recv_string()
                 self._handler.meddle_on_user_update(json.loads(_extra_info))
+            elif message == "tags_update":
+                _tags = json.loads(self._sub_socket.recv_string())
+                self._handler.meddle_on_tags_update(_tags)
             else:
                 _channel = message[:10]
                 _name = self._sub_socket.recv_string()

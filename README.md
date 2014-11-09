@@ -65,6 +65,11 @@ ToDo
 ----
 
 === before public release
+
+- [ ] bugfix: Wenn man einen Kanal öffnet und das Fenster nicht groß genug +
+      ist, dann verschwindet der Kanal beim Großziehen des Fensters +
+      Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
+      erst nochmal mit der Fenstergröße rumspielen.
 - [ ] server: refactor: server: one thread
 - [ ] server: user id persistence
 - [ ] Search in logs
@@ -72,11 +77,37 @@ ToDo
 - [ ] cookie based user verification
 - [ ] @name notification
 - [ ] check server/client versions
+- [ ] program icon
+- [ ] optional notification on user join
+- [ ] concept for getting missed notification
+- [ ] resizable UI elements
+- [ ] names for channels
+- [ ] sort channels by importance (activity, contribution, hashtags)
+- [ ] show channel subscribers (currently only contributors)
+- [ ] show timestamps with the posts
+- [ ] set username on first startup
+
+=== after public release
+
+- [ ] server: use DB
+- [ ] option modification dialog
+- [ ] sync/async cleanup: make all calls fast and async where needed
+- [ ] Send files
+- [ ] WebClient (to circumvent http/proxy restrictions)
+- [ ] Android Client
+- [ ] encryption / authentication
+- [ ] find contexts on a graphical map
+
+=== done
+
 - [x] Python 2.7+ compatibility for pyinstaller
+- [x] see available tags
+- [x] case insensitivity for tags
+- [x] optional notification on messages
 - [x] see users with channel names
 - [x] reconnect
 - [x] server: log messages (+timestamp)
-- [x] Leave room
+- [x] leave room
 - [x] load conversation on join
 - [x] system notifications (on message/tag notification)
 - [x] join an existing channel
@@ -93,15 +124,6 @@ ToDo
 - [x] Recognize hashtags
 - [x] list users
 - [x] Watchdog / connection status
-
-=== after public release
-- [ ] server: use DB
-- [ ] sync/async cleanup: make all calls fast and async where needed
-- [ ] Send files
-- [ ] WebClient (to circumvent http/proxy restrictions)
-- [ ] Android Client
-- [ ] encryption / authentication
-- [ ] find contexts on a graphica map
 
 
 Architecture:

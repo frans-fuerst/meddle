@@ -27,6 +27,16 @@ class chat_output_widget(QtGui.QPlainTextEdit):
         self.appendPlainText(text)
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
 
+def set_bold(widget, bold):
+    font = widget.font()
+    #font.setWeight(QtGui.QFont.Bold)
+    font.setBold(bold)
+    widget.setFont(font)
+
+def set_font_size(widget, size):
+    font = widget.font()
+    font.setPointSize(size)
+    widget.setFont(font)
 
 class chat_widget(QtGui.QWidget):
 
@@ -129,6 +139,19 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
 
+        #_lbl_hot_tags_cpt = QtGui.QLabel('hot tags:')
+        self._lbl_hot_tags = QtGui.QLabel('') # todo align left, small font
+        set_bold(self._lbl_hot_tags, True)
+        set_font_size(self._lbl_hot_tags, 8)
+
+        _hlayout3 = QtGui.QHBoxLayout()
+        _hlayout3.setMargin(0)
+        #_hlayout3.addWidget(_lbl_hot_tags_cpt)
+        _hlayout3.addWidget(self._lbl_hot_tags)
+        _hlayout3_widget = QtGui.QWidget()
+        _hlayout3_widget.setLayout(_hlayout3)
+        #_hlayout3_widget.setMaximumSize(QtCore.QSize(3000,100))
+
         self._lst_users = QtGui.QListWidget()
         self._lst_channels = QtGui.QListWidget()
         self._lst_users.setMaximumSize(QtCore.QSize(200, 1000))
@@ -152,7 +175,7 @@ class MeddleWindow(QtGui.QWidget):
         _layout = QtGui.QVBoxLayout()
 
         _layout.addWidget(_hlayout2_widget)
-        #_layout.addWidget(self._lst_users)
+        _layout.addWidget(_hlayout3_widget)
         _layout.addWidget(_hlayout1_widget)
         _layout.addWidget(self._lst_rooms)
         _layout.addWidget(self._lst_notifications)
@@ -176,20 +199,14 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str)
     def _on_txt_tags_textChanged(self, text):
-        font = self._txt_tags.font()
-        font.setWeight(QtGui.QFont.Bold)
-        font.setBold(False)
-        self._txt_tags.setFont(font)
+        set_bold(self._txt_tags, False)
 
     @QtCore.pyqtSlot()
     def _on_txt_tags_returnPressed(self):
         _tags_text = str(self._txt_tags.text())
         _tags = [x.lower() for x in _tags_text.split(' ') if x.strip() != ""]
         logging.info('set tags to %s', _tags)
-        font = self._txt_tags.font()
-        font.setWeight(QtGui.QFont.Bold)
-        font.setBold(True)
-        self._txt_tags.setFont(font)
+        set_bold(self._txt_tags, True)
         self.meddle_base.set_tags(_tags)
 
     def keyPressEvent(self, e):
@@ -204,6 +221,7 @@ class MeddleWindow(QtGui.QWidget):
         if self.meddle_base.get_connection_status():
             self._update_user_list(self.meddle_base.get_users())
             self._update_channel_list(self.meddle_base.get_channels())
+            self._update_active_tags_list(self.meddle_base.get_active_tags())
         else:
             self._update_user_list([])
             self._update_channel_list([])
@@ -226,6 +244,13 @@ class MeddleWindow(QtGui.QWidget):
         logging.info("channels: %s" % channels)
         for c in channels:
             self._lst_channels.addItem("%s: %s" % (c, ", ". join(channels[c])))
+
+    def _update_active_tags_list(self, tags):
+        _tags = sorted([(n, len(l)) for n, l in tags.items()],
+                       key=lambda x: x[1], reverse=True)[:10]
+        self._lbl_hot_tags.setText(
+            "   ".join(
+                [("%s [%d]" % (t[1:], c)) if c > 1 else t[1:] for t, c in _tags]))
 
     def _on_lst_users_doubleClicked(self, index):
         _user = str(self._lst_users.item(index.row()).text())
@@ -255,8 +280,8 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
         _channel, _name, _text = (str(x) for x in (channel, name, text))
-        print("%s %s %s" %(_channel, _name, _text))
         self._chats[_channel].on_message(_name, _text)
+        self._show_notification("%s on %s:\n%s" %(_name, _channel, _text))
 
     @QtCore.pyqtSlot(str)
     def _meddle_on_joined_channel(self, channel):
@@ -309,11 +334,15 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
         self._update_user_list(users)
-        
+
     @QtCore.pyqtSlot(dict)
     def _meddle_on_channels_update(self, channels):
         self._update_channel_list(channels)
-    
+
+    @QtCore.pyqtSlot(dict)
+    def _meddle_on_tags_update(self, tags):
+        self._update_active_tags_list(tags)
+
     def meddle_on_message(self, channel, name, text):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_message",
@@ -348,19 +377,24 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(str, channel),
                 QtCore.Q_ARG(str, user),
                 QtCore.Q_ARG(str, text))
-        
+
     def meddle_on_channels_update(self, channels):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_channels_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(dict, channels))
-        
+
     def meddle_on_user_update(self, users):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_user_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(list, users))
 
+    def meddle_on_tags_update(self, tags):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_tags_update",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(dict, tags))
 
 def main():
     logging.info("main")
@@ -368,8 +402,6 @@ def main():
     ex = MeddleWindow()
     sys.exit(app.exec_())
 
-import datetime
-#st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 if __name__ == "__main__":
     logging.basicConfig(
