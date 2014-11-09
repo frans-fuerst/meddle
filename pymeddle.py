@@ -95,7 +95,7 @@ class base:
         self._serverport = options.serverport if options.serverport else 32100
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
-        self._version = 6
+        self._version = (0, 6, 0)
 
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
@@ -115,7 +115,7 @@ class base:
         with self._mutex_rpc_socket:
             self._rpc_socket.send_multipart(
                 ["create_channel".encode(),
-                 self._my_id.encode(),
+                 str(self._my_id).encode(),
                  json.dumps(_invited_users).encode()])
             return self._rpc_socket.recv_string()
 
@@ -216,9 +216,9 @@ class base:
                                  json.dumps({'name':self._username, 
                                              'version':self._version})))
         _answer = json.loads(_answer)
-        if 'accepted' in _answer:# and _answer['accepted']:
+        if 'accepted' in _answer and _answer['accepted']:
             self._my_id = _answer['id']
-            logging.info("server: calls us '%s', has version %d (own: %s)", 
+            logging.info("server: calls us '%s', has version %s (own: %s)", 
                          self._my_id, _answer['version'], self._version)
         else:
             self._handler.meddle_on_version_check(

@@ -47,7 +47,7 @@ def store_tags(all_tags, tags, channel, user):
         1<<4: new tag on user,
         1<<6: new tag this day,
         1<<8: new tag on channel, 
-        1<<16: new tag"""
+        1<<16: new tag """
     _result = 0  
     if tags == []:
         return False
@@ -169,7 +169,7 @@ def main():
     _channels = {}
     _all_tags = {}
     _logs = {}
-    _own_version = 6
+    _own_version = (0, 6, 0)
     _port_rpc = 32100
     _port_pub = 32101
 
@@ -181,6 +181,7 @@ def main():
 
     _poller = zmq.Poller()
     _poller.register(_rpc_socket, zmq.POLLIN)
+    logging.info("meddle version: %s", _own_version)
     logging.info("using Python version %s", tuple(sys.version_info))
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
@@ -204,8 +205,9 @@ def main():
                 _answer = json.loads(_rpc_socket.recv_string())
                 _name = _answer['name']
                 _version = _answer['version']
-                logging.debug("hello from '%s' with client version %d" % (_name, _version))
-                if _version != _own_version:
+                logging.debug("hello from '%s' with client version %s" % (
+                    _name, _version))
+                if tuple(_version) != tuple(_own_version):
                     _rpc_socket.send_string(json.dumps({'accepted': False,
                                                         'version': _own_version}))
                 else:
