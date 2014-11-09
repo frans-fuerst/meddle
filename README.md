@@ -68,10 +68,11 @@ ToDo
 - [ ] server: refactor: server: one thread
 - [ ] server: user id persistence
 - [ ] Search in logs
-- [ ] setup.py file
+- [ ] setup.py file / http://www.pyinstaller.org/
 - [ ] cookie based user verification
 - [ ] @name notification
 - [ ] check server/client versions
+- [x] Python 2.7+ compatibility for pyinstaller
 - [x] see users with channel names
 - [x] reconnect
 - [x] server: log messages (+timestamp)
@@ -94,11 +95,13 @@ ToDo
 - [x] Watchdog / connection status
 
 === after public release
+- [ ] server: use DB
 - [ ] sync/async cleanup: make all calls fast and async where needed
 - [ ] Send files
 - [ ] WebClient (to circumvent http/proxy restrictions)
 - [ ] Android Client
 - [ ] encryption / authentication
+- [ ] find contexts on a graphica map
 
 
 Architecture:

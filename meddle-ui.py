@@ -183,7 +183,8 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot()
     def _on_txt_tags_returnPressed(self):
-        _tags = [x.lower() for x in self._txt_tags.text().split(' ') if x.strip() != ""]
+        _tags_text = str(self._txt_tags.text())
+        _tags = [x.lower() for x in _tags_text.split(' ') if x.strip() != ""]
         logging.info('set tags to %s', _tags)
         font = self._txt_tags.font()
         font.setWeight(QtGui.QFont.Bold)
@@ -227,13 +228,13 @@ class MeddleWindow(QtGui.QWidget):
             self._lst_channels.addItem("%s: %s" % (c, ", ". join(channels[c])))
 
     def _on_lst_users_doubleClicked(self, index):
-        _user = self._lst_users.item(index.row()).text()
+        _user = str(self._lst_users.item(index.row()).text())
         logging.debug("doubleclick on user %s" % _user)
         _channel = self.meddle_base.create_channel([_user])
         self.meddle_base.join_channel(_channel)
 
     def _on_lst_channels_doubleClicked(self, index):
-        _channel = self._lst_channels.item(index.row()).text().split(':')[0]
+        _channel = str(self._lst_channels.item(index.row()).text().split(':')[0])
         logging.debug("doubleclick on channel %s" % _channel)
         self.meddle_base.join_channel(_channel)
 
@@ -253,34 +254,37 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str, str, str)
     def _meddle_on_message(self, channel, name, text):
-        print("%s %s %s" %(channel, name, text))
-        self._chats[channel].on_message(name, text)
+        _channel, _name, _text = (str(x) for x in (channel, name, text))
+        print("%s %s %s" %(_channel, _name, _text))
+        self._chats[_channel].on_message(_name, _text)
 
     @QtCore.pyqtSlot(str)
     def _meddle_on_joined_channel(self, channel):
+        _channel = str(channel)
         _item1 = QtGui.QListWidgetItem()
         _item1.setSizeHint(QtCore.QSize(100, 200))
 
         self._lst_rooms.addItem(_item1)
-        _chat_window = chat_widget(_item1, self.meddle_base, channel)
+        _chat_window = chat_widget(_item1, self.meddle_base, _channel)
         _chat_window.close_window.connect(self._on_chat_window_close_window)
 
-        for t, name, text in self.meddle_base.get_log(channel):
+        for t, name, text in self.meddle_base.get_log(_channel):
             _chat_window.on_message(name, text)
 
-        self._chats[channel] = _chat_window
+        self._chats[_channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
-        self._show_notification("you joined channel %s" % channel)
+        self._show_notification("you joined channel %s" % _channel)
 
     def _on_chat_window_close_window(self, channel):
-        self.meddle_base.leave_channel(channel)
+        self.meddle_base.leave_channel(str(channel))
 
     @QtCore.pyqtSlot(str)
     def _meddle_on_leave_channel(self, channel):
-        _window = self._chats[channel]
+        _channel = str(channel)
+        _window = self._chats[_channel]
         _list_item = _window.parent_item
         self._lst_rooms.takeItem(self._lst_rooms.row(_list_item))
-        del self._chats[channel]
+        del self._chats[_channel]
         del _window
         del _list_item
         #window.parent_item.setParent(None)
@@ -295,10 +299,12 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str, str, str, str)
     def _meddle_on_tag_notification(self, tag, channel, user, text):
+        _tag, _channel, _user, _text = (str(x) for x in (tag, channel, user, text))
+        
         logging.info("tag '%s' has been mentioned on channel %s: %s",
-                     tag, channel, text)
-        self._lst_notifications.addItem("%s: %s: %s" % (channel, user, text))
-        self._show_notification("%s: %s: %s" % (channel, user, text))
+                     _tag, _channel, _text)
+        self._lst_notifications.addItem("%s: %s: %s" % (_channel, _user, _text))
+        self._show_notification("%s: %s: %s" % (_channel, _user, _text))
 
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
@@ -344,7 +350,6 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(str, text))
         
     def meddle_on_channels_update(self, channels):
-        print(type(channels))
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_channels_update",
                 QtCore.Qt.QueuedConnection,

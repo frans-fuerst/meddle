@@ -7,6 +7,7 @@ import string
 import logging
 import json
 import time
+import sys
 import datetime
 
 def timestamp_str():
@@ -139,7 +140,7 @@ def main():
 
     _poller = zmq.Poller()
     _poller.register(_rpc_socket, zmq.POLLIN)
-
+    logging.info("using Python version %s", tuple(sys.version_info))
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
 

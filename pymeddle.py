@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 import sys
-if sys.version_info < (3,1,):
-    print("please use only Python 3.1 an up")
+if sys.version_info < (2, 7,):
+    print("please use only Python 2.7 an up")
     sys.exit(-1)
 try:
     import zmq
@@ -61,6 +61,7 @@ class base:
                           help="meddle server tcp port")
 
         (options, args) = parser.parse_args()
+        logging.info("using Python version %s", tuple(sys.version_info))
 
         self._perstitent_settings = {}
         self._perstitent_settings['tags'] = []
@@ -107,11 +108,15 @@ class base:
         return answer
 
     def create_channel(self, invited_users=[]):
+        if type(invited_users) in (list, tuple):
+            _invited_users = [str(l) for l in invited_users]
+        else:
+            _invited_users = [str(invited_users)]
         with self._mutex_rpc_socket:
             self._rpc_socket.send_multipart(
                 ["create_channel".encode(),
                  self._my_id.encode(),
-                 json.dumps(invited_users).encode()])
+                 json.dumps(_invited_users).encode()])
             return self._rpc_socket.recv_string()
 
     def join_channel(self, channel):
@@ -119,14 +124,14 @@ class base:
             self._subscriptions.append(channel)
             self._handler.meddle_on_joined_channel(channel)
             logging.info("talking on channel '%s'" % channel)
-            self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, channel)
+            self._sub_socket.setsockopt(zmq.SUBSCRIBE, channel.encode('utf-8'))
 
     def leave_channel(self, channel):
         if channel in self._subscriptions:
             self._subscriptions.remove(channel)
             self._handler.meddle_on_leave_channel(channel)
             logging.info("leaving channel '%s'" % channel)
-            self._sub_socket.setsockopt_string(zmq.UNSUBSCRIBE, channel)
+            self._sub_socket.setsockopt(zmq.UNSUBSCRIBE, channel.encode('utf-8'))
 
     def connect(self):
         self._set_connection_status(False)
@@ -144,11 +149,11 @@ class base:
         _new_tags = set(tags)
         _old_tags = set() if force else set(self._perstitent_settings['tags'])
         for t in _new_tags - _old_tags:
-            print("subscribe '%s'" % t)
-            self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "tag#%s" % t)
+            logging.info("subscribe '%s'" % t)
+            self._sub_socket.setsockopt(zmq.SUBSCRIBE, ("tag#%s" % t).encode('utf-8'))
         for t in _old_tags - _new_tags:
-            print("unsubscribe '%s'" % t)
-            self._sub_socket.setsockopt_string(zmq.UNSUBSCRIBE, "tag#%s" % t)
+            logging.info("unsubscribe '%s'" % t)
+            self._sub_socket.setsockopt(zmq.UNSUBSCRIBE, ("tag#%s" % t).encode('utf-8'))
         self._perstitent_settings['tags'] = tags
 
     def get_tags(self):
@@ -233,9 +238,9 @@ class base:
                 self._hello()                
 
     def _recieve_messages(self):
-        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'channels_update')
-        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'user_update')
-        self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'notify%s' % self._my_id)
+        self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'channels_update'.encode('utf-8'))
+        self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'user_update'.encode('utf-8'))
+        self._sub_socket.setsockopt(zmq.SUBSCRIBE, ('notify%s' % self._my_id).encode('utf-8'))
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         while True:
             message = self._sub_socket.recv_string()
