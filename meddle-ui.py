@@ -108,22 +108,41 @@ class MeddleWindow(QtGui.QWidget):
 
     def __init__(self):
         super(MeddleWindow, self).__init__()
-
-        self.meddle_base = pymeddle.base(self)
         self._chats = {}
-        self._init_ui()
-        self.meddle_base.connect()
-
-        self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
-        self._on_txt_tags_returnPressed()
         self._focus = True
         self.installEventFilter(self)
 
+        self.meddle_base = pymeddle.base(self)
+        self._init_ui()
+            
+
+    def onEvent(self, event):
+        pass
+    
+    def onShow(self, event):
+        pass
+        
     def eventFilter(self, object, event):
         if event.type() == QtCore.QEvent.WindowActivate:
             self._focus = True
         elif event.type()== QtCore.QEvent.WindowDeactivate:
             self._focus = False
+        elif event.type()== QtCore.QEvent.Show:
+            text, ok = QtGui.QInputDialog.getText(
+                self, 'your name?', 'name:', mode=QtGui.QLineEdit.Normal, 
+                text='text')
+            if ok:
+                self._init_ui()
+                self.meddle_base.connect()
+        
+                self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
+                self._on_txt_tags_returnPressed()
+            else:
+                self.close()
+                QtCore.QCoreApplication.instance().quit()
+        else:
+            #print("event:%d"%event.type())
+            pass
 
         return False
 

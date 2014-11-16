@@ -9,6 +9,7 @@ import json
 import time
 import sys
 import datetime
+import pymeddle_common
 
 def timestamp_str():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
@@ -20,15 +21,16 @@ def publish(socket, timestamp, participant, channel, text):
         f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
         f.write("\n")
 
-def random_string(chars):
+def random_string(N, chars=None):
     if not chars:
         chars = string.ascii_uppercase + string.digits
     return ''.join(
         random.choice(chars)
         for _ in range(N))
 
-def uid():
-    return "%x" % int(time.time()) + random_string(4)
+def create_uid():
+    """ creates a 16 digit uid with 9 time based and 7 random characters """
+    return "%x" % (int(time.time()) * 0x10 % 0x1000000000) + random_string(7, string.hexdigits.lower())
 
 def replace(in_str, src_characters, tgt_characters=' '):
     for c in src_characters:
@@ -174,7 +176,8 @@ def main():
     _channels = {}
     _all_tags = {}
     _logs = {}
-    _own_version = (0, 6, 0)
+    
+    _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
 
@@ -238,14 +241,14 @@ def main():
                 else:
                     logging.debug("%s creates channel and invites '%s'",
                                   _sender_id, _invited_users)
-                    _channel_name = random_string(10)
+                    _channel_name = create_uid()
                     # todo - check collisions
                     _rpc_socket.send_string(_channel_name)
                     _channels[_channel_name] = channel()
                     _channels[_channel_name].participants.add(_name)
-                    for uid in [_users.get_id(u) for u in _invited_users]:
+                    for _uid in [_users.get_id(u) for u in _invited_users]:
                         notify_user(_pub_socket,
-                                    uid, ('join_channel', _channel_name))
+                                    _uid, ('join_channel', _channel_name))
                     publish_channel_list(_pub_socket, _channels)
 
             elif _message == "get_channels":

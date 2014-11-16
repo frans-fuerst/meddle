@@ -27,15 +27,7 @@ import json
 import time
 import ast
 import socket
-
-def meddle_directory():
-    if os.path.isdir(os.path.dirname(__file__)):
-        return os.path.dirname(__file__)
-    else:
-        return os.path.dirname(os.path.dirname(__file__))
-
-def system_user_directory():
-    return os.path.expanduser('~')
+import pymeddle_common
 
 def system_username():
     # todo: format (spaces, etc)
@@ -71,17 +63,17 @@ class base:
         (options, args) = parser.parse_args()
 
         _meddle_default_config_filename = os.path.join(
-            meddle_directory(), '.meddle-default')
+            pymeddle_common.meddle_directory(), '.meddle-default')
 
         self._meddle_config_filename = os.path.join(
-            system_user_directory(), '.meddle')
+            pymeddle_common.system_user_directory(), '.meddle')
 
         logging.info("using environment:")
         logging.info("    Python version       %s", tuple(sys.version_info))
         logging.info("    ZeroMQ version       %s", zmq.zmq_version())
         logging.info("    pyzmq version        %s", zmq.pyzmq_version())
-        logging.info("    home directory:      %s", system_user_directory())
-        logging.info("    meddle directory:    %s", meddle_directory())
+        logging.info("    home directory:      %s", pymeddle_common.system_user_directory())
+        logging.info("    meddle directory:    %s", pymeddle_common.meddle_directory())
         logging.info("    default config file: %s", _meddle_default_config_filename)
         logging.info("    user config file:    %s", self._meddle_config_filename)
         
@@ -107,8 +99,13 @@ class base:
         self._my_id = 0
         self._subscriptions = []
         
-        if options.username: self._username = options.username
-        else: self._username = self._perstitent_settings['username'] if 'username' in self._perstitent_settings else system_username()
+        if options.username: 
+            self._username = options.username
+        else: 
+            if 'username' in self._perstitent_settings:
+                self._username = self._perstitent_settings['username']  
+            else:
+                self._username = system_username()
         
         if options.servername:
             self._servername = options.servername
@@ -117,7 +114,7 @@ class base:
         self._serverport = options.serverport if options.serverport else 32100
         self._mutex_rpc_socket = Lock()
         self._connection_status = None
-        self._version = (0, 6, 0)
+        self._version = pymeddle_common.get_version()
 
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
@@ -306,9 +303,9 @@ class base:
                 _tags = json.loads(self._sub_socket.recv_string())
                 self._handler.meddle_on_tags_update(_tags)
             else:
-                _channel = message[:10]
+                _channel = message[:16]
                 _name = self._sub_socket.recv_string()
-                _text = message[10:]
+                _text = message[16:]
                 logging.info("incoming message on %s %s: '%s'",
                              _channel, _name, _text)
                 self._handler.meddle_on_message(_channel, _name, _text)
