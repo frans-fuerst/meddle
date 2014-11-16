@@ -8,7 +8,8 @@ except:
     print("you need the PyQt4 package installed for your running python instance.")
     print()
     print("go to http://www.riverbankcomputing.co.uk/software/pyqt/download and"
-          "get the package or use your package manager to install 'python3-pyqt4'")
+          "get the package or use your package manager to install "
+          "'python3-pyqt4' or 'python-pyqt4'")
     sys.exit(-1)
 
 import logging

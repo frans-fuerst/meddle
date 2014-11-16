@@ -15,12 +15,12 @@ except:
     print()
     print("python[.exe] -m pip install /path/to/pyzmq-wheel-file.whl")
     print()
-    print("or use your package manager to install 'python3-zmq'")
+    print("or use your package manager to install 'python3-zmq' or 'python-zmq'")
     sys.exit(-1)
 
+import os
 import getpass
 from threading import Thread, Lock
-import pymeddle
 import logging
 from optparse import OptionParser
 import json
@@ -28,6 +28,11 @@ import time
 import ast
 import socket
 
+def meddle_directory():
+    return os.path.dirname(__file__)
+
+def system_user_directory():
+    return os.path.expanduser('~')
 
 def system_username():
     # todo: format (spaces, etc)
@@ -61,20 +66,34 @@ class base:
                           help="meddle server tcp port")
 
         (options, args) = parser.parse_args()
-        logging.info("using Python version %s", tuple(sys.version_info))
 
+        _meddle_default_config_filename = os.path.join(
+            meddle_directory(), '.meddle-default')
+
+        self._meddle_config_filename = os.path.join(
+            system_user_directory(), '.meddle')
+
+        logging.info("using environment:")
+        logging.info("    Python version       %s", tuple(sys.version_info))
+        logging.info("    ZeroMQ version       %s", zmq.zmq_version())
+        logging.info("    pyzmq version        %s", zmq.pyzmq_version())
+        logging.info("    home directory:      %s", system_user_directory())
+        logging.info("    meddle directory:    %s", meddle_directory())
+        logging.info("    default config file: %s", _meddle_default_config_filename)
+        logging.info("    user config file:    %s", self._meddle_config_filename)
+        
         self._perstitent_settings = {}
         self._perstitent_settings['tags'] = []
 
         try:
             self._perstitent_settings.update(
-                ast.literal_eval(open('.meddle-default').read()))
+                ast.literal_eval(open(_meddle_default_config_filename).read()))
         except Exception as e:
             print(e)
 
         try:
             self._perstitent_settings.update(
-                ast.literal_eval(open('.meddle').read()))
+                ast.literal_eval(open(self._meddle_config_filename).read()))
         except Exception as e:
             print(e)
 
@@ -141,7 +160,7 @@ class base:
 
     def shutdown(self):
         try:
-            open('.meddle', 'w').write(str(self._perstitent_settings))
+            open(self._meddle_config_filename, 'w').write(str(self._perstitent_settings))
         except Exception as ex:
             logging.warn(ex)
 

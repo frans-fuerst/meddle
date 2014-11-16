@@ -72,6 +72,7 @@ ToDo
       erst nochmal mit der Fenstergröße rumspielen.
 - [ ] server: refactor: server: one thread
 - [ ] server: user id persistence
+- [ ] save/load configuration files on correct location
 - [ ] Search in logs
 - [ ] setup.py file / http://www.pyinstaller.org/
 - [ ] cookie based user verification
