@@ -20,10 +20,15 @@ def publish(socket, timestamp, participant, channel, text):
         f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
         f.write("\n")
 
-def random_string(N):
+def random_string(chars):
+    if not chars:
+        chars = string.ascii_uppercase + string.digits
     return ''.join(
-        random.choice(string.ascii_uppercase + string.digits)
+        random.choice(chars)
         for _ in range(N))
+
+def uid():
+    return "%x" % int(time.time()) + random_string(4)
 
 def replace(in_str, src_characters, tgt_characters=' '):
     for c in src_characters:
