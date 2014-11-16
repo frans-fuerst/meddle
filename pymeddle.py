@@ -29,7 +29,10 @@ import ast
 import socket
 
 def meddle_directory():
-    return os.path.dirname(__file__)
+    if os.path.isdir(os.path.dirname(__file__)):
+        return os.path.dirname(__file__)
+    else:
+        return os.path.dirname(os.path.dirname(__file__))
 
 def system_user_directory():
     return os.path.expanduser('~')

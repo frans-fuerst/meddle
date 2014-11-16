@@ -416,6 +416,7 @@ class MeddleWindow(QtGui.QWidget):
 def main():
     logging.info("main")
     app = QtGui.QApplication(sys.argv)
+    app.setWindowIcon(QtGui.QIcon('meddle.png'))
     ex = MeddleWindow()
     sys.exit(app.exec_())
 
