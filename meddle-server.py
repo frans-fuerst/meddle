@@ -45,17 +45,17 @@ def handle_tags(socket, channel, user, text):
         socket.send_multipart(
             tuple(str(x).encode()
                   for x in ("tag%s" % t, channel, user, text)))
-        
+
     return _contained_tags
 
 def store_tags(all_tags, tags, channel, user):
-    """ 0: no changes, 
-        1<<2: minor tagging (same channel and user), 
+    """ 0: no changes,
+        1<<2: minor tagging (same channel and user),
         1<<4: new tag on user,
         1<<6: new tag this day,
-        1<<8: new tag on channel, 
+        1<<8: new tag on channel,
         1<<16: new tag """
-    _result = 0  
+    _result = 0
     if tags == []:
         return False
     for t in tags:
@@ -75,7 +75,7 @@ def publish_channel_list(socket, channels):
     socket.send_multipart(
             ["channels_update".encode(),
              json.dumps(
-                 {x:list(y.participants) for x, y in channels.items()}).encode()])             
+                 {x:list(y.participants) for x, y in channels.items()}).encode()])
 
 def publish_tags(socket, all_tags):
     socket.send_multipart(
@@ -92,7 +92,7 @@ class channel:
     def __init__(self):
         self.participants = set()
         self.tags = {}
-        
+
     def add_participant(self, name):
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
@@ -106,7 +106,7 @@ class channel:
                 self.tags[t] = []
             self.tags[t].append(time.time())
         return True
-        
+
 class user:
     def __init__(self):
         self.last_ping = time.time()
@@ -176,7 +176,7 @@ def main():
     _channels = {}
     _all_tags = {}
     _logs = {}
-    
+
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
@@ -220,12 +220,12 @@ def main():
                                                         'version': _own_version}))
                 else:
                     _is_new, _id, _user = _users.find_or_create_name(_name)
-    
+
                     _rpc_socket.send_string(json.dumps({'accepted': True,
                                                         'id': _id,
                                                         'version': _own_version,
                                                         'sub_port': _port_pub}))
-                    
+
                     if _is_new:
                          # todo: send only update-info
                         publish_user_list(_pub_socket, _users)
@@ -292,6 +292,10 @@ def main():
                     logging.warn("tried to send on channel %s which is currently not known",
                                  _channel)
                     _rpc_socket.send_string("nok")
+                elif _text == 'server shutdown':
+                    _rpc_socket.send_string('ok')
+                    time.sleep(1)
+                    sys.exit(0)
                 else:
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
