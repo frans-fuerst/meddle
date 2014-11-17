@@ -114,32 +114,27 @@ class MeddleWindow(QtGui.QWidget):
 
         self.meddle_base = pymeddle.base(self)
         self._init_ui()
-            
 
-    def onEvent(self, event):
-        pass
-    
-    def onShow(self, event):
-        pass
-        
+        if self.meddle_base.username_is_preliminary():
+            text, ok = QtGui.QInputDialog.getText(
+                self, 'your name?', 'name:', mode=QtGui.QLineEdit.Normal,
+                text=self.meddle_base.current_username())
+            if ok:
+                self.meddle_base.set_username(text)
+            else:
+                QtCore.QMetaObject.invokeMethod(
+                        self, "_shutdown",
+                        QtCore.Qt.QueuedConnection)
+
+        self.meddle_base.connect()
+        self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
+        self._on_txt_tags_returnPressed()
+
     def eventFilter(self, object, event):
         if event.type() == QtCore.QEvent.WindowActivate:
             self._focus = True
         elif event.type()== QtCore.QEvent.WindowDeactivate:
             self._focus = False
-        elif event.type()== QtCore.QEvent.Show:
-            text, ok = QtGui.QInputDialog.getText(
-                self, 'your name?', 'name:', mode=QtGui.QLineEdit.Normal, 
-                text='text')
-            if ok:
-                self._init_ui()
-                self.meddle_base.connect()
-        
-                self._txt_tags.setText(" ".join(self.meddle_base.get_tags()))
-                self._on_txt_tags_returnPressed()
-            else:
-                self.close()
-                QtCore.QCoreApplication.instance().quit()
         else:
             #print("event:%d"%event.type())
             pass
@@ -231,10 +226,14 @@ class MeddleWindow(QtGui.QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
-            self.close()
+            self._shutdown()
 
     def closeEvent(self, event):
         self.meddle_base.shutdown()
+
+    @QtCore.pyqtSlot()
+    def _shutdown(self):
+        self.close()
 
     def _update_widgets(self):
         self._update_window_title()
@@ -305,8 +304,8 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(bool, int, int, str)
     def _meddle_on_version_check(self, status, v_server, v_own, message):
-        QtGui.QMessageBox.about( 
-            self, "meddle", "could not connect to server (server: %s, own: %s)" % 
+        QtGui.QMessageBox.about(
+            self, "meddle", "could not connect to server (server: %s, own: %s)" %
             (v_server, v_own))
         self.close()
 
@@ -352,7 +351,7 @@ class MeddleWindow(QtGui.QWidget):
     @QtCore.pyqtSlot(str, str, str, str)
     def _meddle_on_tag_notification(self, tag, channel, user, text):
         _tag, _channel, _user, _text = (str(x) for x in (tag, channel, user, text))
-        
+
         logging.info("tag '%s' has been mentioned on channel %s: %s",
                      _tag, _channel, _text)
         self._lst_notifications.addItem("%s: %s: %s" % (_channel, _user, _text))
@@ -422,7 +421,7 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_meddle_on_tags_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(dict, tags))
-        
+
     def meddle_on_version_check(self, success, v_server, v_own, message):
         QtCore.QMetaObject.invokeMethod(
                 self, "_meddle_on_version_check",
@@ -431,7 +430,7 @@ class MeddleWindow(QtGui.QWidget):
                 QtCore.Q_ARG(int, v_server),
                 QtCore.Q_ARG(int, v_own),
                 QtCore.Q_ARG(str, message))
-    
+
 def main():
     logging.info("main")
     app = QtGui.QApplication(sys.argv)

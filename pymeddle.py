@@ -8,13 +8,14 @@ if sys.version_info < (2, 7,):
 try:
     import zmq
 except:
-    print("you need the pyzmq package installed for your running python instance.")
-    print()
+    print("you need the pyzmq package installed for your running python "
+          "instance (version %s." % ".".join((str(x) for x in tuple(sys.version_info))))
+    print("")
     print("go to https://pypi.python.org/pypi/pyzmq/14.4.0, get the wheel file "
           "and install with")
-    print()
+    print("")
     print("python[.exe] -m pip install /path/to/pyzmq-wheel-file.whl")
-    print()
+    print("")
     print("or use your package manager to install 'python3-zmq' or 'python-zmq'")
     sys.exit(-1)
 
@@ -76,7 +77,7 @@ class base:
         logging.info("    meddle directory:    %s", pymeddle_common.meddle_directory())
         logging.info("    default config file: %s", _meddle_default_config_filename)
         logging.info("    user config file:    %s", self._meddle_config_filename)
-        
+
         self._perstitent_settings = {}
         self._perstitent_settings['tags'] = []
 
@@ -92,21 +93,23 @@ class base:
         except Exception as e:
             print(e)
 
-        print(self._perstitent_settings)
+        # print(self._perstitent_settings)
 
         self.context = zmq.Context()
         self._handler = handler
         self._my_id = 0
         self._subscriptions = []
-        
-        if options.username: 
+        self._preliminary_username = False
+
+        if options.username:
             self._username = options.username
-        else: 
+        else:
             if 'username' in self._perstitent_settings:
-                self._username = self._perstitent_settings['username']  
+                self._username = self._perstitent_settings['username']
             else:
                 self._username = system_username()
-        
+                self._preliminary_username = True
+
         if options.servername:
             self._servername = options.servername
         else:
@@ -209,6 +212,13 @@ class base:
     def current_username(self):
         return self._username
 
+    def set_username(self, name):
+        self._username = name
+        self._perstitent_settings['username'] = name
+
+    def username_is_preliminary(self):
+        return self._preliminary_username
+
     def _request(self, text):
         with self._mutex_rpc_socket:
             if type(text) in (list, tuple):
@@ -229,20 +239,20 @@ class base:
         if status != self._connection_status:
             self._connection_status = status
             self._handler.meddle_on_connection_established(status)
-            
+
     def _hello(self):
-        _answer = self._request(("hello", 
-                                 json.dumps({'name':self._username, 
+        _answer = self._request(("hello",
+                                 json.dumps({'name':self._username,
                                              'version':self._version})))
         _answer = json.loads(_answer)
         if 'accepted' in _answer and _answer['accepted']:
             self._my_id = _answer['id']
-            logging.info("server: calls us '%s', has version %s (own: %s)", 
+            logging.info("server: calls us '%s', has version %s (own: %s)",
                          self._my_id, _answer['version'], self._version)
         else:
             self._handler.meddle_on_version_check(
                 False, _answer['version'], self._version, 'mismatch')
-            
+
     def _rpc_thread(self):
 
         _rpc_server_address = "tcp://%s:%d" % (self._servername, self._serverport)
@@ -268,7 +278,7 @@ class base:
             answer = self._request(['ping', self._my_id])
             if answer != 'ok':
                 logging.warn("we got '%s' as reply to ping, let's say hello again..", answer)
-                self._hello()                
+                self._hello()
 
     def _recieve_messages(self):
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'channels_update'.encode('utf-8'))
@@ -276,7 +286,7 @@ class base:
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'tags_update'.encode('utf-8'))
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, ('notify%s' % self._my_id).encode('utf-8'))
         #self._sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
-        
+
         while True:
             message = self._sub_socket.recv_string()
             if message.startswith("tag#"):
