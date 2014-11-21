@@ -154,6 +154,16 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout2_widget.setLayout(_hlayout2)
         _hlayout2_widget.setMaximumSize(QtCore.QSize(3000,100))
 
+        _lbl_search = QtGui.QLabel('search:')
+        self._txt_search = QtGui.QLineEdit()
+        _hlayout4 = QtGui.QHBoxLayout()
+        _hlayout4.setMargin(0)
+        _hlayout4.addWidget(_lbl_search)
+        _hlayout4.addWidget(self._txt_search)
+        _hlayout4_widget = QtGui.QWidget()
+        _hlayout4_widget.setLayout(_hlayout4)
+        _hlayout4_widget.setMaximumSize(QtCore.QSize(3000,100))
+
         #_lbl_hot_tags_cpt = QtGui.QLabel('hot tags:')
         self._lbl_hot_tags = QtGui.QLabel('') # todo align left, small font
         set_bold(self._lbl_hot_tags, True)
@@ -189,14 +199,17 @@ class MeddleWindow(QtGui.QWidget):
 
         _layout = QtGui.QVBoxLayout()
 
-        _layout.addWidget(_hlayout2_widget)
-        _layout.addWidget(_hlayout3_widget)
         _layout.addWidget(_hlayout1_widget)
         _layout.addWidget(self._lst_rooms)
+        _layout.addWidget(_hlayout2_widget)
+        _layout.addWidget(_hlayout3_widget)
+        _layout.addWidget(_hlayout4_widget)
         _layout.addWidget(self._lst_notifications)
 
         self._txt_tags.textChanged.connect(self._on_txt_tags_textChanged)
         self._txt_tags.returnPressed.connect(self._on_txt_tags_returnPressed)
+
+        self._txt_search.returnPressed.connect(self._on_txt_search_returnPressed)
 
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
         self._lst_channels.doubleClicked.connect(self._on_lst_channels_doubleClicked)
@@ -204,7 +217,7 @@ class MeddleWindow(QtGui.QWidget):
 
         self.setLayout(_layout)
 
-        self.setGeometry(800, 100, 500, 500)
+        self.setGeometry(800, 50, 500, 700)
         self._update_window_title()
         self.show()
 
@@ -223,6 +236,10 @@ class MeddleWindow(QtGui.QWidget):
         logging.info('set tags to %s', _tags)
         set_bold(self._txt_tags, True)
         self.meddle_base.set_tags(_tags)
+
+    @QtCore.pyqtSlot()
+    def _on_txt_search_returnPressed(self):
+        logging.info(self._txt_search.text())
 
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
