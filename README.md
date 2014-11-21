@@ -70,26 +70,20 @@ ToDo
       ist, dann verschwindet der Kanal beim Großziehen des Fensters +
       Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
       erst nochmal mit der Fenstergröße rumspielen.
-- [ ] server: refactor: server: one thread
-- [ ] server: user id persistence
-- [ ] save/load configuration files on correct location
 - [ ] Search in logs
-- [ ] setup.py file / http://www.pyinstaller.org/
 - [ ] cookie based user verification
 - [ ] @name notification
-- [ ] check server/client versions
-- [ ] program icon
 - [ ] optional notification on user join
-- [ ] concept for getting missed notification
 - [ ] resizable UI elements
 - [ ] names for channels
 - [ ] sort channels by importance (activity, contribution, hashtags)
 - [ ] show channel subscribers (currently only contributors)
 - [ ] show timestamps with the posts
-- [ ] set username on first startup
 
 === after public release
 
+- [ ] server: refactor: server: one thread
+- [ ] concept for getting missed notification
 - [ ] server: use DB
 - [ ] option modification dialog
 - [ ] sync/async cleanup: make all calls fast and async where needed
@@ -125,6 +119,12 @@ ToDo
 - [x] Recognize hashtags
 - [x] list users
 - [x] Watchdog / connection status
+- [x] server: user id persistence
+- [x] save/load configuration files on correct location
+- [x] setup.py file / http://www.pyinstaller.org/
+- [x] check server/client versions
+- [x] program icon
+- [x] set username on first startup
 
 
 Architecture:
