@@ -30,7 +30,8 @@ def random_string(N, chars=None):
 
 def create_uid():
     """ creates a 16 digit uid with 9 time based and 7 random characters """
-    return "%x" % (int(time.time()) * 0x10 % 0x1000000000) + random_string(7, string.hexdigits.lower())
+    return ("%x" % (int(time.time()) * 0x10 % 0x1000000000) 
+            + random_string(7, string.hexdigits.lower()))
 
 def replace(in_str, src_characters, tgt_characters=' '):
     for c in src_characters:
@@ -167,11 +168,11 @@ class user_container:
         #_result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
 
         if name in self._associated_ids:
-            _id = self._associated_ids[name]
+            _id = self._associated_ids[name]['id']
         else:
             _id = self._next_id
             self._next_id += 1
-            self._associated_ids[name] = _id
+            self._associated_ids[name] = {'id':_id}
 
         _new_user = False
         if _id not in self._users_online:
@@ -187,7 +188,7 @@ class user_container:
         return None
 
     def get_id(self, name):
-        return self._associated_ids[name]
+        return self._associated_ids[name]['id']
 
     def set_offline(self, user_ids):
         for i in user_ids: del self._users_online[i]
