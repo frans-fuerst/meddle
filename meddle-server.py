@@ -120,7 +120,49 @@ class user_container:
         self._next_id = 0
         self._users_online = {}     # {id: (name, user)}
         self._associated_ids = {}   # {name: id}, permanent
+        
+    def __json__(self):
+        assert False
+    def __JSON__(self):
+        assert False
+    def __to_JSON(self):
+        assert False
+        
+    def load(self, filename):
+        try:
+            with open(filename) as f:
+                _data = json.loads(f.read())
+                self._next_id = _data['next_id']
+                self._associated_ids = _data['user_data']
+        except Exception as ex:
+            print(ex)
+        
+    def save(self, filename):
+        #try:
+            #print(json.dumps(data))
+        #except Exception as ex:
+            #print(ex)
+            
+        try:
+            with open(filename, 'w') as f:
+                f.write(self.to_JSON())
+                                 
+        except Exception as ex:
+            print(ex)
+        
+    def to_JSON(self):
+        return json.dumps(
+            { 'next_id': self._next_id,
+              'user_data': self._associated_ids },
+            default=lambda o: o.__dict__,
+            sort_keys=True,
+            indent=4)
 
+    def from_JSON(self, json_data):
+        imported_data = json.loads(json_data)
+        self._associated_ids = imported_data['user_data']
+        self._next_id = imported_data['next_id']
+            
     def find_or_create_name(self, name):
         #_result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
 
@@ -168,9 +210,12 @@ class user_container:
         if len(_result) > 0:
             logging.info("users %s timeouted" % _result)
         return _result
-
+    
+def persist(users):
+    users.save('server-user.db')
+    
+    
 def main():
-    _users = user_container()
     _context = zmq.Context()
 
     _channels = {}
@@ -193,6 +238,9 @@ def main():
     logging.info("using Python version %s", tuple(sys.version_info))
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
+
+    _users = user_container()
+    _users.load('server-user.db')
 
     while True:
 
@@ -292,7 +340,11 @@ def main():
                     logging.warn("tried to send on channel %s which is currently not known",
                                  _channel)
                     _rpc_socket.send_string("nok")
+                elif _text == 'persist':
+                    persist(_users)
+                    _rpc_socket.send_string('ok')
                 elif _text == 'server shutdown':
+                    persist(_users)
                     _rpc_socket.send_string('ok')
                     time.sleep(1)
                     sys.exit(0)
