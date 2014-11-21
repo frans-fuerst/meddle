@@ -120,7 +120,7 @@ class MeddleWindow(QtGui.QWidget):
                 self, 'your name?', 'name:', mode=QtGui.QLineEdit.Normal,
                 text=self.meddle_base.current_username())
             if ok:
-                self.meddle_base.set_username(text)
+                self.meddle_base.set_username(str(text))
             else:
                 QtCore.QMetaObject.invokeMethod(
                         self, "_shutdown",
