@@ -8,6 +8,7 @@ import logging
 import json
 import time
 import sys
+import glob
 import datetime
 import pymeddle_common
 
@@ -20,6 +21,30 @@ def publish(socket, timestamp, participant, channel, text):
     with open('_%s.log' % channel, 'a') as f:
         f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
         f.write("\n")
+        
+def find_logs():
+    _ret = []
+    for i in glob.glob('_*.log'):
+        _ret.append(i[1:-4])
+    return _ret
+    
+def get_log(channel):
+    _return = []
+    try:
+        _filename = '_%s.log' % channel
+        for l in open(_filename).readlines():
+            _t = l[: l.find(':')].strip()
+            l = l[l.find(':')+1:]
+            _c = l[: l.find(':')].strip()
+            l = l[l.find(':')+1:]
+            _p = l[: l.find(':')].strip()
+            _t = l[l.find(':')+1:].strip()
+            _l = (_t, _p, _t)
+            print(_l)
+            _return.append(_l)
+    except Exception as ex:
+        logging.warning("could not open '%s' %s", _filename, ex)
+    return _return
 
 def random_string(N, chars=None):
     if not chars:
@@ -122,13 +147,6 @@ class user_container:
         self._users_online = {}     # {id: (name, user)}
         self._associated_ids = {}   # {name: id}, permanent
         
-    def __json__(self):
-        assert False
-    def __JSON__(self):
-        assert False
-    def __to_JSON(self):
-        assert False
-        
     def load(self, filename):
         try:
             with open(filename) as f:
@@ -221,7 +239,6 @@ def main():
 
     _channels = {}
     _all_tags = {}
-    _logs = {}
 
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
@@ -242,7 +259,7 @@ def main():
 
     _users = user_container()
     _users.load('server-user.db')
-
+    
     while True:
 
         try:
@@ -313,10 +330,7 @@ def main():
 
             elif _message.startswith("get_log"):
                 _channel = _rpc_socket.recv_string()
-                if _channel in _logs:
-                    _rpc_socket.send_string(json.dumps(_logs[_channel]))
-                else:
-                    _rpc_socket.send_string(json.dumps([]))
+                _rpc_socket.send_string(json.dumps(get_log(_channel)))
 
             elif _message == "search":
                 _search_term = json.loads(_rpc_socket.recv_string())
@@ -365,9 +379,6 @@ def main():
                     if store_tags(_all_tags, _tags, _channel, _sender_id) > 0: #1<<2:
                         publish_tags(_pub_socket, _all_tags)
                     publish(_pub_socket, timestamp_str(), _name, _channel, _text)
-                    if not _channel in _logs:
-                        _logs[_channel] = []
-                    _logs[_channel].append(("", _name, _text))
 
         except Exception as ex:
             logging.error("something bad happened: %s", ex)

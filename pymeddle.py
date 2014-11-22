@@ -247,8 +247,8 @@ class base:
 
     def _hello(self):
         _answer = self._request(("hello",
-                                 json.dumps({'name':self._username,
-                                             'version':self._version})))
+                                 json.dumps({'name':    self._username,
+                                             'version': self._version})))
         _answer = json.loads(_answer)
         if 'accepted' in _answer and _answer['accepted']:
             self._my_id = _answer['id']
