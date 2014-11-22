@@ -318,6 +318,12 @@ def main():
                 else:
                     _rpc_socket.send_string(json.dumps([]))
 
+            elif _message == "search":
+                _search_term = json.loads(_rpc_socket.recv_string())
+                _rpc_socket.send_string(json.dumps({'ok':'True', 'id':0}))
+                logging.info("user %d wants us to search for '%s'", 
+                             _search_term['user'], _search_term['term'])
+                
             elif _message.startswith("ping"):
                 # todo: handle users
                 _sender_id = int(_rpc_socket.recv_string())

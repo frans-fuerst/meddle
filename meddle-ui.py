@@ -239,7 +239,9 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot()
     def _on_txt_search_returnPressed(self):
-        logging.info(self._txt_search.text())
+        _term = str(self._txt_search.text())
+        self.meddle_base.search(_term)
+        logging.info(_term)
 
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
