@@ -115,6 +115,7 @@ def notify_user(socket, user_id, msg):
     
 def load_channels(filename):
     try:
+<<<<<<< HEAD
         _data = json.load(open(filename))
     except:
         pass
@@ -136,6 +137,50 @@ class channel:
             default=lambda o: o.__dict__,
             sort_keys=True,
             indent=4)
+=======
+        _res = {}
+        _data = json.load(open(filename))
+        print(_data)
+        for n, c in _data.items():
+            _res[n] = channel(c)
+        return _res
+    except Exception as ex:
+        print(ex)
+
+def persist(users, channels, tags):
+    users.save('server-user.db')
+    json.dump({n:c.to_JSON() for n, c in channels.items()}, open('server-channels.db', 'w'))
+    json.dump(tags, open('server-tags.db', 'w'))
+
+    x = load_channels('server-channels.db')
+    if x == channels:
+        print(x)
+        print(channels)
+    
+class channel(object):
+        
+    def __init__(self, json=None):
+        if json:
+            self.participants = set(json['participants'])
+            self.tags = json['tags']
+        else:
+            self.participants = set()
+            self.tags = {}
+            
+    def __cmp__(self, other):
+        return 0 if (self.participants == other.participants and 
+                     self.tags == other.tags) else 1
+    
+    def to_JSON(self):
+        return { 'participants': list(self.participants),
+                 'tags': self.tags }
+        #return json.dumps(
+            #{ 'participants': list(self.participants),
+              #'tags': self.tags },
+            #default=lambda o: o.__dict__,
+            #sort_keys=True,
+            #indent=4)
+>>>>>>> progress on persiting server data
     
     def add_participant(self, name):
         if not name in self.participants:
@@ -258,9 +303,12 @@ def main():
     _users = user_container()
     _users.load('server-user.db')
     
+<<<<<<< HEAD
     _channels['xxx'] = channel()
     persist(_users, _channels, _all_tags)    
 
+=======
+>>>>>>> progress on persiting server data
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
