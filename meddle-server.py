@@ -112,13 +112,31 @@ def notify_user(socket, user_id, msg):
     socket.send_multipart(
         tuple(str(x).encode()
               for x in ("notify%d" % user_id,) + tuple(msg)))
+    
+def load_channels(filename):
+    try:
+        _data = json.load(open(filename))
+    except:
+        pass
 
+def persist(users, channels, tags):
+    users.save('server-user.db')
+    json.dump({n:c.to_JSON() for n,c in channels.items()}, open('server-channels.db', 'w'))
+    json.dump(tags, open('server-tags.db', 'w'))
 
 class channel:
     def __init__(self):
         self.participants = set()
         self.tags = {}
-
+    
+    def to_JSON(self):
+        return json.dumps(
+            { 'participants': list(self.participants),
+              'tags': self.tags },
+            default=lambda o: o.__dict__,
+            sort_keys=True,
+            indent=4)
+    
     def add_participant(self, name):
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
@@ -230,15 +248,18 @@ class user_container:
             logging.info("users %s timeouted" % _result)
         return _result
     
-def persist(users):
-    users.save('server-user.db')
-    
     
 def main():
+    
     _context = zmq.Context()
 
-    _channels = {}
+    _channels = {}  # name -> channel
     _all_tags = {}
+    _users = user_container()
+    _users.load('server-user.db')
+    
+    _channels['xxx'] = channel()
+    persist(_users, _channels, _all_tags)    
 
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
@@ -257,9 +278,6 @@ def main():
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
 
-    _users = user_container()
-    _users.load('server-user.db')
-    
     while True:
 
         try:
@@ -362,10 +380,10 @@ def main():
                                  _channel)
                     _rpc_socket.send_string("nok")
                 elif _text == 'persist':
-                    persist(_users)
+                    persist(_users, _channels, _all_tags)    
                     _rpc_socket.send_string('ok')
                 elif _text == 'server shutdown':
-                    persist(_users)
+                    persist(_users, _channels, _all_tags)    
                     _rpc_socket.send_string('ok')
                     time.sleep(1)
                     sys.exit(0)
