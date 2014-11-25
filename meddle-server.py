@@ -121,19 +121,32 @@ def load_channels(filename):
         for n, c in _data.items():
             _res[n] = channel(c)
         return _res
-    except Exception as ex:
-        print(ex)
+    except FileNotFoundError:
+        return {}
+#    except Exception as ex:
+#        print(ex)
+
+def load_tags(filename):
+    try:
+        _res = {}
+        _data = json.load(open(filename))
+        for c, t in _data.items():
+            _res[c] = [(_a, _b, _c) for _a, _b, _c in t ]
+        return _res
+    except FileNotFoundError:
+        return {}
 
 def persist(users, channels, tags):
     users.save('server-user.db')
+    assert users == user_container().load('server-user.db')
 
     json.dump({n:c.to_JSON() for n, c in channels.items()},
               open('server-channels.db', 'w'))
-
-    json.dump(tags, open('server-tags.db', 'w'))
-
     assert channels == load_channels('server-channels.db')
 
+    json.dump(tags, open('server-tags.db', 'w'))
+    t = load_tags('server-tags.db')
+    assert tags == t
 
 class channel(object):
 
@@ -187,12 +200,17 @@ class user_container:
         self._users_online = {}     # {id: (name, user)}
         self._associated_ids = {}   # {name: id}, permanent
 
+    def __eq__(self, other):
+        return (self._next_id == other._next_id and
+                self._associated_ids == other._associated_ids)
+    
     def load(self, filename):
         try:
             with open(filename) as f:
                 _data = json.loads(f.read())
                 self._next_id = _data['next_id']
                 self._associated_ids = _data['user_data']
+                return self
         except Exception as ex:
             print(ex)
 
@@ -275,8 +293,8 @@ def main():
 
     _context = zmq.Context()
 
-    _channels = {}  # name -> channel
-    _all_tags = {}
+    _channels = load_channels('server-channels.db')
+    _all_tags = load_tags('server-tags.db')
     _users = user_container()
     _users.load('server-user.db')
 
@@ -399,8 +417,8 @@ def main():
                                  _channel)
                     _rpc_socket.send_string("nok")
                 elif _text == 'persist':
-                    persist(_users, _channels, _all_tags)
                     _rpc_socket.send_string('ok')
+                    persist(_users, _channels, _all_tags)
                 elif _text == 'server shutdown':
                     persist(_users, _channels, _all_tags)
                     _rpc_socket.send_string('ok')
