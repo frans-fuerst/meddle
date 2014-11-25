@@ -70,21 +70,25 @@ ToDo
       ist, dann verschwindet der Kanal beim Großziehen des Fensters +
       Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
       erst nochmal mit der Fenstergröße rumspielen.
-- [ ] Search in logs
-- [ ] cookie based user verification
-- [ ] @name notification
-- [ ] optional notification on user join
-- [ ] resizable UI elements
-- [ ] names for channels
+- [ ] server: persistence (user IDs, tags, channel stats, etc.)
+- [ ] search in logs
 - [ ] sort channels by importance (activity, contribution, hashtags)
+- [ ] names for channels
+- [ ] remove comma etc from tags on edit
+- [ ] @name notification
+- [ ] resizable UI elements
 - [ ] show channel subscribers (currently only contributors)
 - [ ] show timestamps with the posts
+- [ ] run on startup
 
 === after public release
 
+- [ ] cookie based user verification
 - [ ] server: refactor: server: one thread
 - [ ] concept for getting missed notification
 - [ ] server: use DB
+- [ ] email when 'lot of things happened'
+- [ ] UI: use rich text to bold tags/names/etc.
 - [ ] option modification dialog
 - [ ] sync/async cleanup: make all calls fast and async where needed
 - [ ] Send files

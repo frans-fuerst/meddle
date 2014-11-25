@@ -21,13 +21,13 @@ def publish(socket, timestamp, participant, channel, text):
     with open('_%s.log' % channel, 'a') as f:
         f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
         f.write("\n")
-        
+
 def find_logs():
     _ret = []
     for i in glob.glob('_*.log'):
         _ret.append(i[1:-4])
     return _ret
-    
+
 def get_log(channel):
     _return = []
     try:
@@ -55,7 +55,7 @@ def random_string(N, chars=None):
 
 def create_uid():
     """ creates a 16 digit uid with 9 time based and 7 random characters """
-    return ("%x" % (int(time.time()) * 0x10 % 0x1000000000) 
+    return ("%x" % (int(time.time()) * 0x10 % 0x1000000000)
             + random_string(7, string.hexdigits.lower()))
 
 def replace(in_str, src_characters, tgt_characters=' '):
@@ -112,32 +112,9 @@ def notify_user(socket, user_id, msg):
     socket.send_multipart(
         tuple(str(x).encode()
               for x in ("notify%d" % user_id,) + tuple(msg)))
-    
+
 def load_channels(filename):
     try:
-<<<<<<< HEAD
-        _data = json.load(open(filename))
-    except:
-        pass
-
-def persist(users, channels, tags):
-    users.save('server-user.db')
-    json.dump({n:c.to_JSON() for n,c in channels.items()}, open('server-channels.db', 'w'))
-    json.dump(tags, open('server-tags.db', 'w'))
-
-class channel:
-    def __init__(self):
-        self.participants = set()
-        self.tags = {}
-    
-    def to_JSON(self):
-        return json.dumps(
-            { 'participants': list(self.participants),
-              'tags': self.tags },
-            default=lambda o: o.__dict__,
-            sort_keys=True,
-            indent=4)
-=======
         _res = {}
         _data = json.load(open(filename))
         print(_data)
@@ -149,16 +126,17 @@ class channel:
 
 def persist(users, channels, tags):
     users.save('server-user.db')
-    json.dump({n:c.to_JSON() for n, c in channels.items()}, open('server-channels.db', 'w'))
+
+    json.dump({n:c.to_JSON() for n, c in channels.items()},
+              open('server-channels.db', 'w'))
+
     json.dump(tags, open('server-tags.db', 'w'))
 
-    x = load_channels('server-channels.db')
-    if x == channels:
-        print(x)
-        print(channels)
-    
+    assert channels == load_channels('server-channels.db')
+
+
 class channel(object):
-        
+
     def __init__(self, json=None):
         if json:
             self.participants = set(json['participants'])
@@ -166,11 +144,11 @@ class channel(object):
         else:
             self.participants = set()
             self.tags = {}
-            
-    def __cmp__(self, other):
-        return 0 if (self.participants == other.participants and 
-                     self.tags == other.tags) else 1
-    
+
+    def __eq__(self, other):
+        return (self.participants == other.participants and
+                self.tags == other.tags)
+
     def to_JSON(self):
         return { 'participants': list(self.participants),
                  'tags': self.tags }
@@ -180,8 +158,7 @@ class channel(object):
             #default=lambda o: o.__dict__,
             #sort_keys=True,
             #indent=4)
->>>>>>> progress on persiting server data
-    
+
     def add_participant(self, name):
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
@@ -209,7 +186,7 @@ class user_container:
         self._next_id = 0
         self._users_online = {}     # {id: (name, user)}
         self._associated_ids = {}   # {name: id}, permanent
-        
+
     def load(self, filename):
         try:
             with open(filename) as f:
@@ -218,20 +195,20 @@ class user_container:
                 self._associated_ids = _data['user_data']
         except Exception as ex:
             print(ex)
-        
+
     def save(self, filename):
         #try:
             #print(json.dumps(data))
         #except Exception as ex:
             #print(ex)
-            
+
         try:
             with open(filename, 'w') as f:
                 f.write(self.to_JSON())
-                                 
+
         except Exception as ex:
             print(ex)
-        
+
     def to_JSON(self):
         return json.dumps(
             { 'next_id': self._next_id,
@@ -244,7 +221,7 @@ class user_container:
         imported_data = json.loads(json_data)
         self._associated_ids = imported_data['user_data']
         self._next_id = imported_data['next_id']
-            
+
     def find_or_create_name(self, name):
         #_result = [(id, item) for id, item in self._users_online.items() if item[1] == name]
 
@@ -292,23 +269,17 @@ class user_container:
         if len(_result) > 0:
             logging.info("users %s timeouted" % _result)
         return _result
-    
-    
+
+
 def main():
-    
+
     _context = zmq.Context()
 
     _channels = {}  # name -> channel
     _all_tags = {}
     _users = user_container()
     _users.load('server-user.db')
-    
-<<<<<<< HEAD
-    _channels['xxx'] = channel()
-    persist(_users, _channels, _all_tags)    
 
-=======
->>>>>>> progress on persiting server data
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
@@ -401,9 +372,9 @@ def main():
             elif _message == "search":
                 _search_term = json.loads(_rpc_socket.recv_string())
                 _rpc_socket.send_string(json.dumps({'ok':'True', 'id':0}))
-                logging.info("user %d wants us to search for '%s'", 
+                logging.info("user %d wants us to search for '%s'",
                              _search_term['user'], _search_term['term'])
-                
+
             elif _message.startswith("ping"):
                 # todo: handle users
                 _sender_id = int(_rpc_socket.recv_string())
@@ -428,10 +399,10 @@ def main():
                                  _channel)
                     _rpc_socket.send_string("nok")
                 elif _text == 'persist':
-                    persist(_users, _channels, _all_tags)    
+                    persist(_users, _channels, _all_tags)
                     _rpc_socket.send_string('ok')
                 elif _text == 'server shutdown':
-                    persist(_users, _channels, _all_tags)    
+                    persist(_users, _channels, _all_tags)
                     _rpc_socket.send_string('ok')
                     time.sleep(1)
                     sys.exit(0)

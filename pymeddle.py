@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import sys
+#import os
+#import zmq.backend.cython
+##os.environ['PYZMQ_BACKEND'] = 'cython'
+#import zmq
 if sys.version_info < (2, 7,):
     print("please use only Python 2.7 an up")
     sys.exit(-1)
