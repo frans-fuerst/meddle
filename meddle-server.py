@@ -11,6 +11,7 @@ import sys
 import glob
 import datetime
 import pymeddle_common
+from threading import Thread
 
 def timestamp_str():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
@@ -38,8 +39,8 @@ def get_log(channel):
             _c = l[: l.find(':')].strip()
             l = l[l.find(':')+1:]
             _p = l[: l.find(':')].strip()
-            _t = l[l.find(':')+1:].strip()
-            _l = (_t, _p, _t)
+            _x = l[l.find(':')+1:].strip()
+            _l = (_t, _p, _x)
             print(_l)
             _return.append(_l)
     except Exception as ex:
@@ -63,9 +64,12 @@ def replace(in_str, src_characters, tgt_characters=' '):
         in_str = in_str.replace(c, tgt_characters)
     return in_str
 
+def extract_tags(text):
+    return [x.lower() for x in replace(text, '.,;?!:\'"').split(' ') 
+            if len(x) > 1 and x[0] == '#']
+
 def handle_tags(socket, channel, user, text):
-    _contained_tags = [x.lower() for x in replace(text, '.,;?!:\'"').split(' ')
-                       if len(x) > 1 and x[0] == '#']
+    _contained_tags = extract_tags(text)
     logging.info("tags mentioned: %s", _contained_tags)
     for t in _contained_tags:
         socket.send_multipart(
@@ -113,6 +117,9 @@ def notify_user(socket, user_id, msg):
         tuple(str(x).encode()
               for x in ("notify%d" % user_id,) + tuple(msg)))
 
+def start_search(socket, search_spec):
+    notify_user(socket, search_spec['user'], ("found nothing",))
+    
 def load_channels(filename):
     try:
         _res = {}
@@ -147,6 +154,19 @@ def persist(users, channels, tags):
     json.dump(tags, open('server-tags.db', 'w'))
     t = load_tags('server-tags.db')
     assert tags == t
+
+
+def refresh_channel_information(channels):
+    for c in find_logs():
+        if not c in channels:
+            logging.info("missing information about channel '%s' - reload", c)
+            channels[c] = channel()
+            _logs = get_log(c)
+            for t, u, x in _logs:
+                _tags = extract_tags(x)
+                print(_tags)
+                channels[c].add_participant(u)
+                
 
 class channel(object):
 
@@ -186,9 +206,11 @@ class channel(object):
             self.tags[t].append(time.time())
         return True
 
+
 class user:
     def __init__(self):
         self.last_ping = time.time()
+
 
 class user_container:
 
@@ -298,6 +320,8 @@ def main():
     _users = user_container()
     _users.load('server-user.db')
 
+    refresh_channel_information(_channels)
+    
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
@@ -392,6 +416,11 @@ def main():
                 _rpc_socket.send_string(json.dumps({'ok':'True', 'id':0}))
                 logging.info("user %d wants us to search for '%s'",
                              _search_term['user'], _search_term['term'])
+                _thread = Thread(target=lambda: start_search(
+                    _pub_socket, _search_term))
+                _thread.daemon = True
+                _thread.start()
+                
 
             elif _message.startswith("ping"):
                 # todo: handle users
@@ -429,7 +458,7 @@ def main():
                     # todo: handle wrong user
                     if _channels[_channel].add_participant(_name):
                         publish_channel_list(_pub_socket, _channels)
-                    _tags = handle_tags(_pub_socket, _channel, _name, _text)
+                    _tags = handle_tags(_pub_socket, _channel, _name, _tags)
                     #if _channels[_channel].add_tags(_tags):
                     if store_tags(_all_tags, _tags, _channel, _sender_id) > 0: #1<<2:
                         publish_tags(_pub_socket, _all_tags)
