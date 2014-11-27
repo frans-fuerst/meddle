@@ -322,11 +322,13 @@ class base:
                 _tags = json.loads(self._sub_socket.recv_string())
                 self._handler.meddle_on_tags_update(_tags)
             else:
-                _channel = message[:16]
-                _name = self._sub_socket.recv_string()
-                _text = message[16:]
-                logging.info("incoming message on %s %s: '%s'",
-                             _channel, _name, _text)
+                _channel = message
+                _msg = json.loads(self._sub_socket.recv_string())
+                _name = _msg['user']
+                _text = _msg['text']
+                _time = _msg['time']
+                logging.info("%s: incoming message on %s %s: '%s'",
+                             _time, _channel, _name, _text)
                 self._handler.meddle_on_message(_channel, _name, _text)
 
 

@@ -13,12 +13,25 @@ import datetime
 import pymeddle_common
 from threading import Thread
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 def timestamp_str():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
 
 def publish(socket, timestamp, participant, channel, text):
     logging.debug("%s publishes to '%s': '%s'" % (participant, channel, text))
-    socket.send_multipart([(channel + text).encode(), participant.encode()])
+    # socket.send_multipart([(channel + text).encode(), participant.encode()])
+
+    socket.send_multipart(
+        tuple(str(x).encode()
+              for x in (channel, json.dumps(
+                  {'user':participant,
+                   'time':timestamp,
+                   'text':text}))))
+
     with open('_%s.log' % channel, 'a') as f:
         f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
         f.write("\n")
