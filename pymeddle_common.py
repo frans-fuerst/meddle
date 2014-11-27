@@ -18,7 +18,7 @@ def get_version_info():
     return json.loads(open(_version_file).read())
 
 def get_version():
-    return get_version_info()['common']
+    return tuple(get_version_info()['common'])
 
 def get_min_client_version():
-    return get_version_info()['min_client']
+    return tuple(get_version_info()['min_client'])

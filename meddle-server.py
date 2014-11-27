@@ -41,7 +41,6 @@ def get_log(channel):
             _p = l[: l.find(':')].strip()
             _x = l[l.find(':')+1:].strip()
             _l = (_t, _p, _x)
-            print(_l)
             _return.append(_l)
     except Exception as ex:
         logging.warning("could not open '%s' %s", _filename, ex)
@@ -124,7 +123,6 @@ def load_channels(filename):
     try:
         _res = {}
         _data = json.load(open(filename))
-        print(_data)
         for n, c in _data.items():
             _res[n] = channel(c)
         return _res
@@ -144,6 +142,8 @@ def load_tags(filename):
         return {}
 
 def persist(users, channels, tags):
+    logging.info("write persistent data..")
+    
     users.save('server-user.db')
     assert users == user_container().load('server-user.db')
 
@@ -156,18 +156,32 @@ def persist(users, channels, tags):
     assert tags == t
 
 
-def refresh_channel_information(channels):
-    for c in find_logs():
-        if not c in channels:
-            logging.info("missing information about channel '%s' - reload", c)
-            channels[c] = channel()
-            _logs = get_log(c)
-            for t, u, x in _logs:
-                _tags = extract_tags(x)
-                print(_tags)
-                channels[c].add_participant(u)
+def refresh_channel_information(channels, all_tags, force=False):
+    _available_channels = find_logs()
+    _information_complete = not force
+    if _information_complete:
+        for c in _available_channels:
+            if not c in channels:
+                logging.info("missing information about channel '%s' - rebuild db", c)
+                _information_complete = False
+                break
+    if _information_complete:
+        return
+    
+    channels.clear()
+    all_tags.clear()
+    
+    for c in _available_channels:
+        logging.info("    load channel '%s'", c)
+        channels[c] = channel()
+        _logs = get_log(c)
+        for t, u, x in _logs:
+            _tags = extract_tags(x)
+            channels[c].add_participant(u)
+            channels[c].add_tags(_tags)
+            store_tags(all_tags, _tags, c, u)
                 
-
+                
 class channel(object):
 
     def __init__(self, json=None):
@@ -199,12 +213,12 @@ class channel(object):
         return False
 
     def add_tags(self, tags):
-        if len(tags) == 0: return False
+        if len(tags) == 0: return
         for t in tags:
             if not t in self.tags:
-                self.tags[t] = []
-            self.tags[t].append(time.time())
-        return True
+                self.tags[t] = 0
+            self.tags[t] += 1
+        return
 
 
 class user:
@@ -315,13 +329,6 @@ def main():
 
     _context = zmq.Context()
 
-    _channels = load_channels('server-channels.db')
-    _all_tags = load_tags('server-tags.db')
-    _users = user_container()
-    _users.load('server-user.db')
-
-    refresh_channel_information(_channels)
-    
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
@@ -339,6 +346,13 @@ def main():
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
 
+    _channels = load_channels('server-channels.db')
+    _all_tags = load_tags('server-tags.db')
+    _users = user_container()
+    _users.load('server-user.db')
+
+    refresh_channel_information(_channels, _all_tags, _all_tags==[])
+
     while True:
 
         try:
@@ -348,7 +362,7 @@ def main():
                 publish_user_list(_pub_socket, _users)
 
             if _poller.poll(3000) == []:
-                logging.debug("waiting..")
+                # logging.debug("waiting..")
                 continue
 
             _message = _rpc_socket.recv_string()
@@ -357,10 +371,10 @@ def main():
             if _message == "hello":
                 _answer = json.loads(_rpc_socket.recv_string())
                 _name = _answer['name']
-                _version = _answer['version']
+                _version = tuple(_answer['version'])
                 logging.debug("hello from '%s' with client version %s" % (
                     _name, _version))
-                if tuple(_version) != tuple(_own_version):
+                if _version < pymeddle_common.get_min_client_version():
                     _rpc_socket.send_string(json.dumps({'accepted': False,
                                                         'version': _own_version}))
                 else:
@@ -458,8 +472,8 @@ def main():
                     # todo: handle wrong user
                     if _channels[_channel].add_participant(_name):
                         publish_channel_list(_pub_socket, _channels)
-                    _tags = handle_tags(_pub_socket, _channel, _name, _tags)
-                    #if _channels[_channel].add_tags(_tags):
+                    _tags = handle_tags(_pub_socket, _channel, _name, _text)
+                    _channels[_channel].add_tags(_tags)
                     if store_tags(_all_tags, _tags, _channel, _sender_id) > 0: #1<<2:
                         publish_tags(_pub_socket, _all_tags)
                     publish(_pub_socket, timestamp_str(), _name, _channel, _text)
