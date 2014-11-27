@@ -188,9 +188,11 @@ class channel(object):
         if json:
             self.participants = set(json['participants'])
             self.tags = json['tags']
+            self.last_contributors = json['last_contributors']
         else:
             self.participants = set()
             self.tags = {}
+            self.last_contributors = {}
 
     def __eq__(self, other):
         return (self.participants == other.participants and
@@ -198,15 +200,14 @@ class channel(object):
 
     def to_JSON(self):
         return { 'participants': list(self.participants),
-                 'tags': self.tags }
-        #return json.dumps(
-            #{ 'participants': list(self.participants),
-              #'tags': self.tags },
-            #default=lambda o: o.__dict__,
-            #sort_keys=True,
-            #indent=4)
+                 'tags': self.tags,
+                 'last_contributors': self.last_contributors}
 
     def add_participant(self, name):
+        self.last_contributors[name] = int(time.time())
+        self.last_contributors = {n:t for n, t in 
+                                  sorted(self.last_contributors.items(), 
+                                         key=lambda x: x[1], reverse=True)[:4]}    
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
             return True
