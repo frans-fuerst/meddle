@@ -198,6 +198,17 @@ def refresh_channel_information(channels, all_tags, force=False):
             channels[c].add_tags(_tags)
             store_tags(all_tags, _tags, c, u)
 
+def filter_channels(channels, all_tags, hint):
+    _channel_list = [[n, c, 0] for n, c in channels.items()]
+    
+    _channel_list = sorted(_channel_list, key=lambda x: x[2], reverse=True)[:4]
+    
+    for i, t in enumerate(_channel_list):
+        t[2] = 2
+    print('hint:  %s' % hint)
+    for n, c, v in _channel_list:
+        print('   - %d: %s' % (v, n))
+    return _channel_list
 
 class channel(object):
 
@@ -206,10 +217,12 @@ class channel(object):
             self.participants = set(json['participants'])
             self.tags = json['tags']
             self.last_contributors = json['last_contributors']
+            self.friendly_name = json['friendly_name']
         else:
             self.participants = set()
             self.tags = {}
             self.last_contributors = {}
+            self.friendly_name = ""
 
     def __eq__(self, other):
         return (self.participants == other.participants and
@@ -218,7 +231,8 @@ class channel(object):
     def to_JSON(self):
         return { 'participants': list(self.participants),
                  'tags': self.tags,
-                 'last_contributors': self.last_contributors}
+                 'last_contributors': self.last_contributors,
+                 'friendly_name': self.friendly_name}
 
     def add_participant(self, name):
         self.last_contributors[name] = int(time.time())
@@ -431,9 +445,12 @@ def main():
                     publish_channel_list(_pub_socket, _channels)
 
             elif _message == "get_channels":
+                _hint = json.loads(_rpc_socket.recv_string())
+                _hot_channels = filter_channels(_channels, _all_tags, _hint)
                 _rpc_socket.send_string(
                     json.dumps(
-                        {x:list(y.participants) for x, y in _channels.items()}))
+                        list((n, c.friendly_name, list(c.participants), s) 
+                             for n, c, s in _hot_channels)))
 
             elif _message == "get_users":
                 _rpc_socket.send_string(json.dumps(_users.users_online()))
@@ -501,7 +518,7 @@ def main():
         except Exception as ex:
             logging.error("something bad happened: %s", ex)
             time.sleep(3)
-            raise
+            raise ex
 
 if __name__ == "__main__":
     logging.basicConfig(

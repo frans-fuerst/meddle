@@ -190,7 +190,9 @@ class base:
         return json.loads(answer)
 
     def get_channels(self):
-        answer = self._request("get_channels")
+        answer = self._request(("get_channels", 
+                                json.dumps({'user':self._my_id,
+                                 'tags':self._perstitent_settings['tags']})))
         _channels = json.loads(answer)
         logging.info("channels: %s" % _channels)
         return _channels

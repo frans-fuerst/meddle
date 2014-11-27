@@ -280,8 +280,8 @@ class MeddleWindow(QtGui.QWidget):
     def _update_channel_list(self, channels):
         self._lst_channels.clear()
         logging.info("channels: %s" % channels)
-        for c in channels:
-            self._lst_channels.addItem("%s: %s" % (c, ", ". join(channels[c])))
+        for n, f, p, s in channels:
+            self._lst_channels.addItem("%s: %s" % (n, ", ".join(p)))
 
     def _update_active_tags_list(self, tags):
         _tags = sorted([(n, len(l)) for n, l in tags.items()],
