@@ -70,7 +70,6 @@ ToDo
       ist, dann verschwindet der Kanal beim Großziehen des Fensters +
       Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
       erst nochmal mit der Fenstergröße rumspielen.
-- [ ] server: persistence (user IDs, tags, channel stats, etc.)
 - [ ] search in logs
 - [ ] sort channels by importance (activity, contribution, hashtags)
 - [ ] names for channels
@@ -99,6 +98,7 @@ ToDo
 
 === done
 
+- [x] server: persistence (user IDs, tags, channel stats, etc.)
 - [x] Python 2.7+ compatibility for pyinstaller
 - [x] see available tags
 - [x] case insensitivity for tags

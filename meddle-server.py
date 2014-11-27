@@ -64,7 +64,7 @@ def replace(in_str, src_characters, tgt_characters=' '):
     return in_str
 
 def extract_tags(text):
-    return [x.lower() for x in replace(text, '.,;?!:\'"').split(' ') 
+    return [x.lower() for x in replace(text, '.,;?!:\'"').split(' ')
             if len(x) > 1 and x[0] == '#']
 
 def handle_tags(socket, channel, user, text):
@@ -118,7 +118,7 @@ def notify_user(socket, user_id, msg):
 
 def start_search(socket, search_spec):
     notify_user(socket, search_spec['user'], ("found nothing",))
-    
+
 def load_channels(filename):
     try:
         _res = {}
@@ -127,9 +127,13 @@ def load_channels(filename):
             _res[n] = channel(c)
         return _res
     except FileNotFoundError:
+        logging.debug("file '%s' was not found - start with empty channel db",
+                      filename)
         return {}
-#    except Exception as ex:
-#        print(ex)
+    except KeyError:
+        logging.debug("missing content in file '%s' - start with empty channel db",
+                      filename)
+        return {}
 
 def load_tags(filename):
     try:
@@ -143,7 +147,7 @@ def load_tags(filename):
 
 def persist(users, channels, tags):
     logging.info("write persistent data..")
-    
+
     users.save('server-user.db')
     assert users == user_container().load('server-user.db')
 
@@ -167,10 +171,10 @@ def refresh_channel_information(channels, all_tags, force=False):
                 break
     if _information_complete:
         return
-    
+
     channels.clear()
     all_tags.clear()
-    
+
     for c in _available_channels:
         logging.info("    load channel '%s'", c)
         channels[c] = channel()
@@ -180,8 +184,8 @@ def refresh_channel_information(channels, all_tags, force=False):
             channels[c].add_participant(u)
             channels[c].add_tags(_tags)
             store_tags(all_tags, _tags, c, u)
-                
-                
+
+
 class channel(object):
 
     def __init__(self, json=None):
@@ -205,9 +209,9 @@ class channel(object):
 
     def add_participant(self, name):
         self.last_contributors[name] = int(time.time())
-        self.last_contributors = {n:t for n, t in 
-                                  sorted(self.last_contributors.items(), 
-                                         key=lambda x: x[1], reverse=True)[:4]}    
+        self.last_contributors = {n:t for n, t in
+                                  sorted(self.last_contributors.items(),
+                                         key=lambda x: x[1], reverse=True)[:4]}
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
             return True
@@ -240,7 +244,7 @@ class user_container:
     def __eq__(self, other):
         return (self._next_id == other._next_id and
                 self._associated_ids == other._associated_ids)
-    
+
     def load(self, filename):
         try:
             with open(filename) as f:
@@ -342,8 +346,10 @@ def main():
 
     _poller = zmq.Poller()
     _poller.register(_rpc_socket, zmq.POLLIN)
-    logging.info("meddle version: %s", _own_version)
-    logging.info("using Python version %s", tuple(sys.version_info))
+    logging.info("meddle version:      %s", '.'.join((str(x) for x in _own_version)))
+    logging.info("using Python version %s", '.'.join((str(x) for x in sys.version_info)))
+    logging.info("using ZeroMQ version %s", zmq.zmq_version())
+    logging.info("using pyzmq version  %s", zmq.pyzmq_version())
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
 
@@ -435,7 +441,7 @@ def main():
                     _pub_socket, _search_term))
                 _thread.daemon = True
                 _thread.start()
-                
+
 
             elif _message.startswith("ping"):
                 # todo: handle users
