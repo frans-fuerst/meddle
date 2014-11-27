@@ -199,9 +199,9 @@ class base:
         answer = self._request("get_active_tags")
         _tags = json.loads(answer)
         return _tags
-    
+
     def search(self, search_term):
-        answer = self._request(("search", json.dumps({'user': self._my_id, 
+        answer = self._request(("search", json.dumps({'user': self._my_id,
                                                       'term': search_term})))
         print(answer)
 

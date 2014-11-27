@@ -321,7 +321,7 @@ class MeddleWindow(QtGui.QWidget):
         self._chats[_channel].on_message(_name, _text)
         self._show_notification("%s on %s:\n%s" %(_name, _channel, _text))
 
-    @QtCore.pyqtSlot(bool, int, int, str)
+    @QtCore.pyqtSlot(bool, list, list, str)
     def _meddle_on_version_check(self, status, v_server, v_own, message):
         QtGui.QMessageBox.about(
             self, "meddle", "could not connect to server (server: %s, own: %s)" %
@@ -446,8 +446,8 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_meddle_on_version_check",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(bool, success),
-                QtCore.Q_ARG(int, v_server),
-                QtCore.Q_ARG(int, v_own),
+                QtCore.Q_ARG(list, v_server),
+                QtCore.Q_ARG(list, v_own),
                 QtCore.Q_ARG(str, message))
 
 def main():
