@@ -11,6 +11,7 @@ import sys
 import glob
 import datetime
 import pymeddle_common
+from threading import Thread
 
 def timestamp_str():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
@@ -38,9 +39,8 @@ def get_log(channel):
             _c = l[: l.find(':')].strip()
             l = l[l.find(':')+1:]
             _p = l[: l.find(':')].strip()
-            _t = l[l.find(':')+1:].strip()
-            _l = (_t, _p, _t)
-            print(_l)
+            _x = l[l.find(':')+1:].strip()
+            _l = (_t, _p, _x)
             _return.append(_l)
     except Exception as ex:
         logging.warning("could not open '%s' %s", _filename, ex)
@@ -63,9 +63,12 @@ def replace(in_str, src_characters, tgt_characters=' '):
         in_str = in_str.replace(c, tgt_characters)
     return in_str
 
+def extract_tags(text):
+    return [x.lower() for x in replace(text, '.,;?!:\'"').split(' ') 
+            if len(x) > 1 and x[0] == '#']
+
 def handle_tags(socket, channel, user, text):
-    _contained_tags = [x.lower() for x in replace(text, '.,;?!:\'"').split(' ')
-                       if len(x) > 1 and x[0] == '#']
+    _contained_tags = extract_tags(text)
     logging.info("tags mentioned: %s", _contained_tags)
     for t in _contained_tags:
         socket.send_multipart(
@@ -113,37 +116,83 @@ def notify_user(socket, user_id, msg):
         tuple(str(x).encode()
               for x in ("notify%d" % user_id,) + tuple(msg)))
 
+def start_search(socket, search_spec):
+    notify_user(socket, search_spec['user'], ("found nothing",))
+    
 def load_channels(filename):
     try:
         _res = {}
         _data = json.load(open(filename))
-        print(_data)
         for n, c in _data.items():
             _res[n] = channel(c)
         return _res
-    except Exception as ex:
-        print(ex)
+    except FileNotFoundError:
+        return {}
+#    except Exception as ex:
+#        print(ex)
+
+def load_tags(filename):
+    try:
+        _res = {}
+        _data = json.load(open(filename))
+        for c, t in _data.items():
+            _res[c] = [(_a, _b, _c) for _a, _b, _c in t ]
+        return _res
+    except FileNotFoundError:
+        return {}
 
 def persist(users, channels, tags):
+    logging.info("write persistent data..")
+    
     users.save('server-user.db')
+    assert users == user_container().load('server-user.db')
 
     json.dump({n:c.to_JSON() for n, c in channels.items()},
               open('server-channels.db', 'w'))
-
-    json.dump(tags, open('server-tags.db', 'w'))
-
     assert channels == load_channels('server-channels.db')
 
+    json.dump(tags, open('server-tags.db', 'w'))
+    t = load_tags('server-tags.db')
+    assert tags == t
 
+
+def refresh_channel_information(channels, all_tags, force=False):
+    _available_channels = find_logs()
+    _information_complete = not force
+    if _information_complete:
+        for c in _available_channels:
+            if not c in channels:
+                logging.info("missing information about channel '%s' - rebuild db", c)
+                _information_complete = False
+                break
+    if _information_complete:
+        return
+    
+    channels.clear()
+    all_tags.clear()
+    
+    for c in _available_channels:
+        logging.info("    load channel '%s'", c)
+        channels[c] = channel()
+        _logs = get_log(c)
+        for t, u, x in _logs:
+            _tags = extract_tags(x)
+            channels[c].add_participant(u)
+            channels[c].add_tags(_tags)
+            store_tags(all_tags, _tags, c, u)
+                
+                
 class channel(object):
 
     def __init__(self, json=None):
         if json:
             self.participants = set(json['participants'])
             self.tags = json['tags']
+            self.last_contributors = json['last_contributors']
         else:
             self.participants = set()
             self.tags = {}
+            self.last_contributors = {}
 
     def __eq__(self, other):
         return (self.participants == other.participants and
@@ -151,31 +200,32 @@ class channel(object):
 
     def to_JSON(self):
         return { 'participants': list(self.participants),
-                 'tags': self.tags }
-        #return json.dumps(
-            #{ 'participants': list(self.participants),
-              #'tags': self.tags },
-            #default=lambda o: o.__dict__,
-            #sort_keys=True,
-            #indent=4)
+                 'tags': self.tags,
+                 'last_contributors': self.last_contributors}
 
     def add_participant(self, name):
+        self.last_contributors[name] = int(time.time())
+        self.last_contributors = {n:t for n, t in 
+                                  sorted(self.last_contributors.items(), 
+                                         key=lambda x: x[1], reverse=True)[:4]}    
         if not name in self.participants:
             self.participants.add(name) #todo: should be id
             return True
         return False
 
     def add_tags(self, tags):
-        if len(tags) == 0: return False
+        if len(tags) == 0: return
         for t in tags:
             if not t in self.tags:
-                self.tags[t] = []
-            self.tags[t].append(time.time())
-        return True
+                self.tags[t] = 0
+            self.tags[t] += 1
+        return
+
 
 class user:
     def __init__(self):
         self.last_ping = time.time()
+
 
 class user_container:
 
@@ -187,12 +237,17 @@ class user_container:
         self._users_online = {}     # {id: (name, user)}
         self._associated_ids = {}   # {name: id}, permanent
 
+    def __eq__(self, other):
+        return (self._next_id == other._next_id and
+                self._associated_ids == other._associated_ids)
+    
     def load(self, filename):
         try:
             with open(filename) as f:
                 _data = json.loads(f.read())
                 self._next_id = _data['next_id']
                 self._associated_ids = _data['user_data']
+                return self
         except Exception as ex:
             print(ex)
 
@@ -275,11 +330,6 @@ def main():
 
     _context = zmq.Context()
 
-    _channels = {}  # name -> channel
-    _all_tags = {}
-    _users = user_container()
-    _users.load('server-user.db')
-
     _own_version = pymeddle_common.get_version()
     _port_rpc = 32100
     _port_pub = 32101
@@ -297,6 +347,13 @@ def main():
     logging.info("meddle server listening on port %d, sending on port %d",
                  _port_rpc, _port_pub)
 
+    _channels = load_channels('server-channels.db')
+    _all_tags = load_tags('server-tags.db')
+    _users = user_container()
+    _users.load('server-user.db')
+
+    refresh_channel_information(_channels, _all_tags, _all_tags==[])
+
     while True:
 
         try:
@@ -306,7 +363,7 @@ def main():
                 publish_user_list(_pub_socket, _users)
 
             if _poller.poll(3000) == []:
-                logging.debug("waiting..")
+                # logging.debug("waiting..")
                 continue
 
             _message = _rpc_socket.recv_string()
@@ -315,10 +372,10 @@ def main():
             if _message == "hello":
                 _answer = json.loads(_rpc_socket.recv_string())
                 _name = _answer['name']
-                _version = _answer['version']
+                _version = tuple(_answer['version'])
                 logging.debug("hello from '%s' with client version %s" % (
                     _name, _version))
-                if tuple(_version) != tuple(_own_version):
+                if _version < pymeddle_common.get_min_client_version():
                     _rpc_socket.send_string(json.dumps({'accepted': False,
                                                         'version': _own_version}))
                 else:
@@ -374,6 +431,11 @@ def main():
                 _rpc_socket.send_string(json.dumps({'ok':'True', 'id':0}))
                 logging.info("user %d wants us to search for '%s'",
                              _search_term['user'], _search_term['term'])
+                _thread = Thread(target=lambda: start_search(
+                    _pub_socket, _search_term))
+                _thread.daemon = True
+                _thread.start()
+                
 
             elif _message.startswith("ping"):
                 # todo: handle users
@@ -399,8 +461,8 @@ def main():
                                  _channel)
                     _rpc_socket.send_string("nok")
                 elif _text == 'persist':
-                    persist(_users, _channels, _all_tags)
                     _rpc_socket.send_string('ok')
+                    persist(_users, _channels, _all_tags)
                 elif _text == 'server shutdown':
                     persist(_users, _channels, _all_tags)
                     _rpc_socket.send_string('ok')
@@ -412,7 +474,7 @@ def main():
                     if _channels[_channel].add_participant(_name):
                         publish_channel_list(_pub_socket, _channels)
                     _tags = handle_tags(_pub_socket, _channel, _name, _text)
-                    #if _channels[_channel].add_tags(_tags):
+                    _channels[_channel].add_tags(_tags)
                     if store_tags(_all_tags, _tags, _channel, _sender_id) > 0: #1<<2:
                         publish_tags(_pub_socket, _all_tags)
                     publish(_pub_socket, timestamp_str(), _name, _channel, _text)

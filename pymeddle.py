@@ -278,7 +278,7 @@ class base:
         if True:
             self._hello()
 
-        _thread = Thread(target=lambda: self._recieve_messages())
+        _thread = Thread(target=lambda: self._receive_messages())
         _thread.daemon = True
         _thread.start()
 
@@ -289,7 +289,7 @@ class base:
                 logging.warn("we got '%s' as reply to ping, let's say hello again..", answer)
                 self._hello()
 
-    def _recieve_messages(self):
+    def _receive_messages(self):
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'channels_update'.encode('utf-8'))
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'user_update'.encode('utf-8'))
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, 'tags_update'.encode('utf-8'))
@@ -311,7 +311,7 @@ class base:
                     _channel = self._sub_socket.recv_string()
                     self.join_channel(_channel)
                 else:
-                    pass
+                    logging.info("got strange '%s'", _opcode)
             elif message == "channels_update":
                 self._handler.meddle_on_channels_update(
                     json.loads(self._sub_socket.recv_string()))
