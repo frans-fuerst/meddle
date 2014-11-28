@@ -21,6 +21,10 @@ except NameError:
 def timestamp_str():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
 
+def from_timestamp(time_string):
+    x = time.strptime(time_string,'%Y%m%d%H%M%S%f')
+    return time.mktime(x)
+
 def publish(socket, timestamp, participant, channel, text):
     logging.debug("%s publishes to '%s': '%s'" % (participant, channel, text))
     # socket.send_multipart([(channel + text).encode(), participant.encode()])
@@ -47,7 +51,7 @@ def get_log(channel):
     try:
         _filename = '_%s.log' % channel
         for l in open(_filename).readlines():
-            _t = l[: l.find(':')].strip()
+            _t = from_timestamp(l[: l.find(':')].strip())
             l = l[l.find(':')+1:]
             _c = l[: l.find(':')].strip()
             l = l[l.find(':')+1:]
@@ -194,17 +198,25 @@ def refresh_channel_information(channels, all_tags, force=False):
         _logs = get_log(c)
         for t, u, x in _logs:
             _tags = extract_tags(x)
-            channels[c].add_participant(u)
+            channels[c].add_participant(u, t)
             channels[c].add_tags(_tags)
             store_tags(all_tags, _tags, c, u)
 
 def filter_channels(channels, all_tags, hint):
     _channel_list = [[n, c, 0] for n, c in channels.items()]
+    _user = 'frans'
+    for i, t in enumerate(_channel_list):
+        if _user in t[1].last_contributors:
+            _since = (int(time.time()) - t[1].last_contributors[_user])/3600.
+            t[2] += max(0, int(100 - _since))
+        if _user in t[1].participants:
+            t[2] += 5
+        for tag in hint['tags']:
+            if tag not in t[1].tags: continue
+            t[2] += t[1].tags[tag] * 1
     
     _channel_list = sorted(_channel_list, key=lambda x: x[2], reverse=True)[:4]
     
-    for i, t in enumerate(_channel_list):
-        t[2] = 2
     print('hint:  %s' % hint)
     for n, c, v in _channel_list:
         print('   - %d: %s' % (v, n))
@@ -234,8 +246,8 @@ class channel(object):
                  'last_contributors': self.last_contributors,
                  'friendly_name': self.friendly_name}
 
-    def add_participant(self, name):
-        self.last_contributors[name] = int(time.time())
+    def add_participant(self, name, time):
+        self.last_contributors[name] = int(time)
         self.last_contributors = {n:t for n, t in
                                   sorted(self.last_contributors.items(),
                                          key=lambda x: x[1], reverse=True)[:4]}
@@ -507,7 +519,7 @@ def main():
                 else:
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
-                    if _channels[_channel].add_participant(_name):
+                    if _channels[_channel].add_participant(_name, time.time()):
                         publish_channel_list(_pub_socket, _channels)
                     _tags = handle_tags(_pub_socket, _channel, _name, _text)
                     _channels[_channel].add_tags(_tags)
