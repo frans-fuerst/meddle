@@ -22,8 +22,11 @@ def timestamp_str():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S%f')
 
 def from_timestamp(time_string):
-    x = time.strptime(time_string,'%Y%m%d%H%M%S%f')
-    return time.mktime(x)
+    try:
+        x = time.strptime(time_string,'%Y%m%d%H%M%S%f')
+        return time.mktime(x)
+    except:
+        return 0
 
 def publish(socket, timestamp, participant, channel, text):
     logging.debug("%s publishes to '%s': '%s'" % (participant, channel, text))
@@ -214,9 +217,9 @@ def filter_channels(channels, all_tags, hint):
         for tag in hint['tags']:
             if tag not in t[1].tags: continue
             t[2] += t[1].tags[tag] * 1
-    
+
     _channel_list = sorted(_channel_list, key=lambda x: x[2], reverse=True)[:4]
-    
+
     print('hint:  %s' % hint)
     for n, c, v in _channel_list:
         print('   - %d: %s' % (v, n))
@@ -454,14 +457,14 @@ def main():
                     for _uid in [_users.get_id(u) for u in _invited_users]:
                         notify_user(_pub_socket,
                                     _uid, ('join_channel', _channel_name))
-                    publish_channel_list(_pub_socket, _channels)
+                    # publish_channel_list(_pub_socket, _channels)
 
             elif _message == "get_channels":
                 _hint = json.loads(_rpc_socket.recv_string())
                 _hot_channels = filter_channels(_channels, _all_tags, _hint)
                 _rpc_socket.send_string(
                     json.dumps(
-                        list((n, c.friendly_name, list(c.participants), s) 
+                        list((n, c.friendly_name, list(c.participants), s)
                              for n, c, s in _hot_channels)))
 
             elif _message == "get_users":
@@ -520,7 +523,8 @@ def main():
                     _rpc_socket.send_string('ok')
                     # todo: handle wrong user
                     if _channels[_channel].add_participant(_name, time.time()):
-                        publish_channel_list(_pub_socket, _channels)
+                        # publish_channel_list(_pub_socket, _channels)
+                        pass
                     _tags = handle_tags(_pub_socket, _channel, _name, _text)
                     _channels[_channel].add_tags(_tags)
                     if store_tags(_all_tags, _tags, _channel, _sender_id) > 0: #1<<2:
