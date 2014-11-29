@@ -205,24 +205,25 @@ def refresh_channel_information(channels, all_tags, force=False):
             channels[c].add_tags(_tags)
             store_tags(all_tags, _tags, c, u)
 
-def filter_channels(channels, all_tags, hint):
+def filter_channels(channels, all_tags, user, hint):
     _channel_list = [[n, c, 0] for n, c in channels.items()]
-    _user = 'frans'
+    _count = hint['count']
     for i, t in enumerate(_channel_list):
-        if _user in t[1].last_contributors:
-            _since = (int(time.time()) - t[1].last_contributors[_user])/3600.
+        if user in t[1].last_contributors:
+            _since = (int(time.time()) - t[1].last_contributors[user])/3600.
             t[2] += max(0, int(100 - _since))
-        if _user in t[1].participants:
+        if user in t[1].participants:
             t[2] += 5
         for tag in hint['tags']:
             if tag not in t[1].tags: continue
             t[2] += t[1].tags[tag] * 1
 
-    _channel_list = sorted(_channel_list, key=lambda x: x[2], reverse=True)[:4]
+    _channel_list = sorted(_channel_list, key=lambda x: x[2], reverse=True)[:_count]
+    _channel_list = [(n, s) for n, _, s in _channel_list]
 
     print('hint:  %s' % hint)
-    for n, c, v in _channel_list:
-        print('   - %d: %s' % (v, n))
+    for n, s in _channel_list:
+        print('   - %d: %s' % (s, n))
     return _channel_list
 
 class channel(object):
@@ -461,11 +462,19 @@ def main():
 
             elif _message == "get_channels":
                 _hint = json.loads(_rpc_socket.recv_string())
-                _hot_channels = filter_channels(_channels, _all_tags, _hint)
+                _user = 'frans'
+                _user = _users.get_name(_hint['user'])
+                _hot_channels = filter_channels(_channels, _all_tags, _user, _hint)
                 _rpc_socket.send_string(
                     json.dumps(
-                        list((n, c.friendly_name, list(c.participants), s)
-                             for n, c, s in _hot_channels)))
+                        {_name: _score for _name, _score in _hot_channels}))
+                
+            elif _message == "get_channel_info":
+                _request = json.loads(_rpc_socket.recv_string())
+                _result = [(n, _channels[n].friendly_name, 
+                            list(_channels[n].participants)) 
+                           for n in _request['channels']]
+                _rpc_socket.send_string(json.dumps(_result))
 
             elif _message == "get_users":
                 _rpc_socket.send_string(json.dumps(_users.users_online()))

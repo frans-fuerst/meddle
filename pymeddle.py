@@ -190,12 +190,19 @@ class base:
         return json.loads(answer)
 
     def get_channels(self):
-        answer = self._request(("get_channels", 
-                                json.dumps({'user':self._my_id,
-                                 'tags':self._perstitent_settings['tags']})))
-        _channels = json.loads(answer)
-        logging.info("channels: %s" % _channels)
-        return _channels
+        answer = self._request(
+            ("get_channels", 
+             json.dumps({'user':self._my_id,
+                         'count':2,
+                         'tags':self._perstitent_settings['tags']})))
+        _relevant_channels = json.loads(answer)
+        for c in self._subscriptions:
+            _relevant_channels[c] = 1000
+        answer = self._request(("get_channel_info", 
+                                json.dumps({'channels':_relevant_channels})))
+        _my_channels = json.loads(answer)
+        logging.info("channels: %s" % _my_channels)
+        return _my_channels
 
     def get_active_tags(self):
         answer = self._request("get_active_tags")

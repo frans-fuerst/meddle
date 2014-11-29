@@ -280,7 +280,7 @@ class MeddleWindow(QtGui.QWidget):
     def _update_channel_list(self, channels):
         self._lst_channels.clear()
         logging.info("channels: %s" % channels)
-        for n, f, p, s in channels:
+        for n, f, p in channels:
             self._lst_channels.addItem("%s: %s" % (n, ", ".join(p)))
 
     def _update_active_tags_list(self, tags):
@@ -333,7 +333,7 @@ class MeddleWindow(QtGui.QWidget):
         _channel = str(channel)
         _item1 = QtGui.QListWidgetItem()
         _item1.setSizeHint(QtCore.QSize(100, 200))
-
+# todo: add to channel list
         self._lst_rooms.addItem(_item1)
         _chat_window = chat_widget(_item1, self.meddle_base, _channel)
         _chat_window.close_window.connect(self._on_chat_window_close_window)
@@ -344,7 +344,8 @@ class MeddleWindow(QtGui.QWidget):
         self._chats[_channel] = _chat_window
         self._lst_rooms.setItemWidget(_item1, _chat_window)
         self._show_notification("you joined channel %s" % _channel)
-
+        self._update_widgets()
+        
     def _on_chat_window_close_window(self, channel):
         self.meddle_base.leave_channel(str(channel))
 

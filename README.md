@@ -71,7 +71,7 @@ ToDo
       Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
       erst nochmal mit der Fenstergröße rumspielen.
 - [ ] search in logs
-- [ ] sort channels by importance (activity, contribution, hashtags)
+- [x] sort channels by importance (activity, contribution, hashtags)
 - [ ] names for channels
 - [ ] remove comma etc from tags on edit
 - [ ] @name notification
