@@ -43,12 +43,13 @@ class chat_widget(QtGui.QWidget):
 
     close_window = QtCore.pyqtSignal(str)
 
-    def __init__(self, parent, meddle_base, channel):
+    def __init__(self, parent, meddle_base, cuid):
         super(chat_widget, self).__init__()
         self.parent_item = parent
-        self._channel = channel
+        self._channel = cuid
         self._meddle_base = meddle_base
         self.init_ui()
+        self._lbl_chat_room.setText(self._meddle_base.get_friendly_name(cuid))
 
     def init_ui(self):
         self._lbl_chat_room = QtGui.QLabel(self._channel)
@@ -111,6 +112,7 @@ class MeddleWindow(QtGui.QWidget):
         self._chats = {}
         self._focus = True
         self.installEventFilter(self)
+        self._deactivate_edit_handling = False
 
         self.meddle_base = pymeddle.base(self)
         self._init_ui()
@@ -178,7 +180,14 @@ class MeddleWindow(QtGui.QWidget):
         #_hlayout3_widget.setMaximumSize(QtCore.QSize(3000,100))
 
         self._lst_users = QtGui.QListWidget()
-        self._lst_channels = QtGui.QListWidget()
+        self._lst_channels = QtGui.QTableWidget()
+        self._lst_channels.setColumnCount(3)
+        self._lst_channels.horizontalHeader().hide()
+        self._lst_channels.verticalHeader().hide()
+        self._lst_channels.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self._lst_channels.horizontalHeader().setStretchLastSection(True)
+        self._lst_channels.setColumnHidden(0, True)
+
         self._lst_users.setMaximumSize(QtCore.QSize(200, 1000))
         _lbl_users = QtGui.QLabel('online:')
         _lbl_channels = QtGui.QLabel('channels:')
@@ -190,7 +199,7 @@ class MeddleWindow(QtGui.QWidget):
         _hlayout1.addWidget(self._lst_channels, 1, 1)
         _hlayout1_widget = QtGui.QWidget()
         _hlayout1_widget.setLayout(_hlayout1)
-        _hlayout1_widget.setMaximumSize(QtCore.QSize(3000, 100))
+        _hlayout1_widget.setMaximumSize(QtCore.QSize(3000, 125))
 
         self._lst_rooms = QtGui.QListWidget()
 
@@ -213,6 +222,8 @@ class MeddleWindow(QtGui.QWidget):
 
         self._lst_users.doubleClicked.connect(self._on_lst_users_doubleClicked)
         self._lst_channels.doubleClicked.connect(self._on_lst_channels_doubleClicked)
+        self._lst_channels.itemChanged.connect(self._on_lst_channels_itemChanged)
+        
         self._lst_notifications.doubleClicked.connect(self._on_lst_notifications_doubleClicked)
 
         self.setLayout(_layout)
@@ -278,11 +289,30 @@ class MeddleWindow(QtGui.QWidget):
             self._lst_users.addItem(u)
 
     def _update_channel_list(self, channels):
-        self._lst_channels.clear()
-        logging.info("channels: %s" % channels)
-        for n, f, p in channels:
-            self._lst_channels.addItem("%s: %s" % (n, ", ".join(p)))
-
+        self._deactivate_edit_handling = True
+        try:
+            while self._lst_channels.rowCount() > 0:
+                self._lst_channels.removeRow(0)
+    
+            self._lst_channels.clear()
+            logging.info("channels: %s" % channels)
+            for n, f, p in channels:
+                _row_idx = self._lst_channels.rowCount()
+                self._lst_channels.insertRow(_row_idx)
+                _name_item = QtGui.QTableWidgetItem(f)
+                _cuid_item = QtGui.QTableWidgetItem(n)
+                _cuid_item.setFlags(QtCore.Qt.ItemIsSelectable | 
+                                    QtCore.Qt.ItemIsEnabled)
+                _users_item = QtGui.QTableWidgetItem(", ".join(p))
+                _users_item.setFlags(QtCore.Qt.ItemIsSelectable | 
+                                     QtCore.Qt.ItemIsEnabled)
+                self._lst_channels.setItem(_row_idx, 0, _cuid_item)
+                self._lst_channels.setItem(_row_idx, 1, _name_item)
+                self._lst_channels.setItem(_row_idx, 2, _users_item)
+        except:
+            pass
+        self._deactivate_edit_handling = False
+        
     def _update_active_tags_list(self, tags):
         _tags = sorted([(n, len(l)) for n, l in tags.items()],
                        key=lambda x: x[1], reverse=True)[:10]
@@ -292,15 +322,28 @@ class MeddleWindow(QtGui.QWidget):
 
     def _on_lst_users_doubleClicked(self, index):
         _user = str(self._lst_users.item(index.row()).text())
-        logging.debug("doubleclick on user %s" % _user)
+        # logging.debug("doubleclick on user %s" % _user)
         _channel = self.meddle_base.create_channel([_user])
         self.meddle_base.join_channel(_channel)
 
     def _on_lst_channels_doubleClicked(self, index):
-        _channel = str(self._lst_channels.item(index.row()).text().split(':')[0])
-        logging.debug("doubleclick on channel %s" % _channel)
+        _channel = str(self._lst_channels.item(index.row(), 0).text().split(':')[0])
+        # logging.debug("doubleclick on channel %s" % _channel)
         self.meddle_base.join_channel(_channel)
-
+        
+    def _on_lst_channels_itemChanged(self, index):
+        if self._deactivate_edit_handling:
+            return
+        try:
+            _row_idx = index.row()
+            _cuid = str(self._lst_channels.item(_row_idx , 0).text())
+            _fname = str(self._lst_channels.item(_row_idx , 1).text())
+            if _fname == _cuid:
+                return
+            self.meddle_base.rename_channel(_cuid, _fname)
+        except:
+            pass
+        
     def _on_lst_notifications_doubleClicked(self, index):
         _line = self._lst_notifications.item(index.row()).text()
         logging.debug("doubleclick on notification %s" % _line)

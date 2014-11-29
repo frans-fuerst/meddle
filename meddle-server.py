@@ -7,6 +7,7 @@ import string
 import logging
 import json
 import time
+import os
 import sys
 import glob
 import datetime
@@ -75,8 +76,9 @@ def random_string(N, chars=None):
 
 def create_uid():
     """ creates a 16 digit uid with 9 time based and 7 random characters """
-    return ("%x" % (int(time.time()) * 0x10 % 0x1000000000)
-            + random_string(7, string.hexdigits.lower()))
+    return random_string(5, string.hexdigits.lower())
+    # return ("%x" % (int(time.time()) * 0x10 % 0x1000000000)
+    #         + random_string(7, string.hexdigits.lower()))
 
 def replace(in_str, src_characters, tgt_characters=' '):
     for c in src_characters:
@@ -144,7 +146,7 @@ def load_channels(filename):
         _res = {}
         _data = json.load(open(filename))
         for n, c in _data.items():
-            _res[n] = channel(c)
+            _res[n] = channel(n, c)
         return _res
     except FileNotFoundError:
         logging.debug("file '%s' was not found - start with empty channel db",
@@ -197,7 +199,7 @@ def refresh_channel_information(channels, all_tags, force=False):
 
     for c in _available_channels:
         logging.info("    load channel '%s'", c)
-        channels[c] = channel()
+        channels[c] = channel(c)
         _logs = get_log(c)
         for t, u, x in _logs:
             _tags = extract_tags(x)
@@ -228,17 +230,19 @@ def filter_channels(channels, all_tags, user, hint):
 
 class channel(object):
 
-    def __init__(self, json=None):
-        if json:
+    def __init__(self, friendly_name, json=None):
+        if json and isinstance(json, dict):
             self.participants = set(json['participants'])
             self.tags = json['tags']
             self.last_contributors = json['last_contributors']
             self.friendly_name = json['friendly_name']
+            if self.friendly_name == "":
+                self.friendly_name = friendly_name
         else:
             self.participants = set()
             self.tags = {}
             self.last_contributors = {}
-            self.friendly_name = ""
+            self.friendly_name = friendly_name
 
     def __eq__(self, other):
         return (self.participants == other.participants and
@@ -439,6 +443,16 @@ def main():
                          # todo: send only update-info
                         publish_user_list(_pub_socket, _users)
 
+            elif _message.startswith("ping"):
+                # todo: handle users
+                _sender_id = int(_rpc_socket.recv_string())
+                if _users.refresh(_sender_id):
+                    _rpc_socket.send_string('ok')
+                else:
+                    logging.warn("user with id %d marked offline but sending",
+                                 _sender_id)
+                    _rpc_socket.send_string('nok')
+
             elif _message == "create_channel":
                 _sender_id = int(_rpc_socket.recv_string())
                 _invited_users = json.loads(_rpc_socket.recv_string())
@@ -453,7 +467,7 @@ def main():
                     _channel_name = create_uid()
                     # todo - check collisions
                     _rpc_socket.send_string(_channel_name)
-                    _channels[_channel_name] = channel()
+                    _channels[_channel_name] = channel(_channel_name)
                     _channels[_channel_name].participants.add(_name)
                     for _uid in [_users.get_id(u) for u in _invited_users]:
                         notify_user(_pub_socket,
@@ -470,11 +484,14 @@ def main():
                         {_name: _score for _name, _score in _hot_channels}))
                 
             elif _message == "get_channel_info":
-                _request = json.loads(_rpc_socket.recv_string())
-                _result = [(n, _channels[n].friendly_name, 
-                            list(_channels[n].participants)) 
-                           for n in _request['channels']]
-                _rpc_socket.send_string(json.dumps(_result))
+                try:
+                    _request = json.loads(_rpc_socket.recv_string())
+                    _result = [(n, _channels[n].friendly_name, 
+                                list(_channels[n].participants)) 
+                               for n in _request['channels']]
+                    _rpc_socket.send_string(json.dumps(_result))
+                except:
+                    _rpc_socket.send_string(json.dumps({}))
 
             elif _message == "get_users":
                 _rpc_socket.send_string(json.dumps(_users.users_online()))
@@ -496,17 +513,15 @@ def main():
                 _thread.daemon = True
                 _thread.start()
 
-
-            elif _message.startswith("ping"):
-                # todo: handle users
-                _sender_id = int(_rpc_socket.recv_string())
-                if _users.refresh(_sender_id):
-                    _rpc_socket.send_string('ok')
-                else:
-                    logging.warn("user with id %d marked offline but sending",
-                                 _sender_id)
+            elif _message.startswith("rename_channel"):
+                _rename_info = json.loads(_rpc_socket.recv_string())
+                if not ('cuid' in _rename_info and 'name' in _rename_info
+                        and len(_rename_info['name'].strip())>3):
                     _rpc_socket.send_string('nok')
-
+                    return
+                _channels[_rename_info['cuid']].friendly_name = _rename_info['name'].strip()
+                _rpc_socket.send_string('ok')
+                
             elif _message == "publish":
                 _sender_id = int(_rpc_socket.recv_string())
                 _channel = _rpc_socket.recv_string()
@@ -543,6 +558,9 @@ def main():
         except Exception as ex:
             logging.error("something bad happened: %s", ex)
             time.sleep(3)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)            
             raise ex
 
 if __name__ == "__main__":

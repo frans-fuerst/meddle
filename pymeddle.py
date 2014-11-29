@@ -84,6 +84,7 @@ class base:
 
         self._perstitent_settings = {}
         self._perstitent_settings['tags'] = []
+        self._channel_friendly_names = {}
 
         try:
             self._perstitent_settings.update(
@@ -193,7 +194,7 @@ class base:
         answer = self._request(
             ("get_channels", 
              json.dumps({'user':self._my_id,
-                         'count':2,
+                         'count':4,
                          'tags':self._perstitent_settings['tags']})))
         _relevant_channels = json.loads(answer)
         for c in self._subscriptions:
@@ -202,12 +203,20 @@ class base:
                                 json.dumps({'channels':_relevant_channels})))
         _my_channels = json.loads(answer)
         logging.info("channels: %s" % _my_channels)
+        for _cuid, _fname, _ in _my_channels:
+            self._channel_friendly_names[_cuid] = _fname
         return _my_channels
 
     def get_active_tags(self):
         answer = self._request("get_active_tags")
         _tags = json.loads(answer)
         return _tags
+    
+    def get_friendly_name(self, cuid):
+        if cuid in self._channel_friendly_names:
+            return self._channel_friendly_names[cuid]
+        else:
+            return cuid
 
     def search(self, search_term):
         answer = self._request(("search", json.dumps({'user': self._my_id,
@@ -217,6 +226,14 @@ class base:
     def get_log(self, channel):
         answer = self._request(("get_log", channel))
         return json.loads(answer)
+
+    def rename_channel(self, cuid, name):
+        logging.info("rename %s to '%s'" % (cuid, name))
+        answer = self._request(("rename_channel", json.dumps({'cuid': cuid,
+                                                              'name': name})))
+        if not answer == 'ok':
+            logging.warning("answer was %s" % answer)
+            
 
     def get_connection_status(self):
         return bool(self._connection_status)
