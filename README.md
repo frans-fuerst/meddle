@@ -71,7 +71,6 @@ ToDo
       Auch durch Doppelklick in der channels-Liste kommt er nicht. Man muss +
       erst nochmal mit der Fenstergröße rumspielen.
 - [ ] search in logs
-- [ ] names for channels
 - [ ] remove comma etc from tags on edit
 - [ ] @name notification
 - [ ] resizable UI elements
@@ -98,6 +97,7 @@ ToDo
 
 === done
 
+- [x] names for channels
 - [x] sort channels by importance (activity, contribution, hashtags)
 - [x] server: persistence (user IDs, tags, channel stats, etc.)
 - [x] Python 2.7+ compatibility for pyinstaller

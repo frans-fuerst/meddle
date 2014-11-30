@@ -17,16 +17,41 @@ import logging
 import pymeddle
 
 
-class chat_output_widget(QtGui.QPlainTextEdit):
+class chat_output_widget(QtGui.QTableWidget):
 
     def __init__(self):
         super(chat_output_widget, self).__init__()
-        self.setReadOnly(True)
+        self.setColumnCount(2)
+        self.horizontalHeader().hide()
+        self.verticalHeader().hide()
+        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.setShowGrid(False)
 
-    def append_message(self, text):
+    def append_message(self, name, text):
         logging.info("appendMessage: " + text + str(type(text)))
-        self.appendPlainText(text)
-        self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
+        _row_idx = self.rowCount()
+        self.insertRow(_row_idx)
+        _name_item = QtGui.QTableWidgetItem("%s:" % name)
+        _name_item.setFlags(QtCore.Qt.ItemIsSelectable | 
+                            QtCore.Qt.ItemIsEnabled)
+        _text_item = QtGui.QTableWidgetItem(text)
+        _text_item.setFlags(QtCore.Qt.ItemIsSelectable | 
+                            QtCore.Qt.ItemIsEnabled)
+        self.setItem(_row_idx, 0, _name_item)
+        self.setItem(_row_idx, 1, _text_item)
+        QtCore.QTimer.singleShot(10, self.scrollToBottom)
+
+#class chat_output_widget(QtGui.QPlainTextEdit):
+
+    #def __init__(self):
+        #super(chat_output_widget, self).__init__()
+        #self.setReadOnly(True)
+
+    #def append_message(self, text):
+        #logging.info("appendMessage: " + text + str(type(text)))
+        #self.appendPlainText(text)
+        #self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
 
 def set_bold(widget, bold):
     font = widget.font()
@@ -88,7 +113,7 @@ class chat_widget(QtGui.QWidget):
         self._txt_message_edit.setFocus()
 
         p = self.palette()
-        p.setColor(self.backgroundRole(), Qt.QColor(100,100,0))
+        p.setColor(self.backgroundRole(), Qt.QColor(100, 100, 0))
         self.setPalette(p)
         self.setAutoFillBackground(True)
 
@@ -100,7 +125,7 @@ class chat_widget(QtGui.QWidget):
         self._txt_message_edit.setText("")
 
     def on_message(self, name, text):
-        self._txt_messages.append_message("%s: %s" % (name, text))
+        self._txt_messages.append_message(name, text)
 
     def closeEvent(self, event):
         pass
@@ -187,6 +212,7 @@ class MeddleWindow(QtGui.QWidget):
         self._lst_channels.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self._lst_channels.horizontalHeader().setStretchLastSection(True)
         self._lst_channels.setColumnHidden(0, True)
+        self._lst_channels.setShowGrid(False)
 
         self._lst_users.setMaximumSize(QtCore.QSize(200, 1000))
         _lbl_users = QtGui.QLabel('online:')
