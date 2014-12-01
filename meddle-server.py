@@ -140,7 +140,7 @@ def notify_user(socket, user_id, msg):
                   for x in ("notify%d" % user_id,) + tuple(msg)))
     else:
         socket.send_multipart((("notify%d" % user_id).encode(), msg.encode()))
-        
+
 def start_search(socket, search_spec):
     _result = []
     _term = search_spec['term'].lower()
@@ -487,19 +487,24 @@ def main():
                     # publish_channel_list(_pub_socket, _channels)
 
             elif _message == "get_channels":
-                _hint = json.loads(_rpc_socket.recv_string())
-                _user = 'frans'
-                _user = _users.get_name(_hint['user'])
-                _hot_channels = filter_channels(_channels, _all_tags, _user, _hint)
-                _rpc_socket.send_string(
-                    json.dumps(
-                        {_name: _score for _name, _score in _hot_channels}))
-                
+                try:
+                    _hint = json.loads(_rpc_socket.recv_string())
+                    _user = 'frans'
+                    _user = _users.get_name(_hint['user'])
+                    _hot_channels = filter_channels(_channels, _all_tags, _user, _hint)
+                    _rpc_socket.send_string(
+                        json.dumps(
+                            {_name: _score for _name, _score in _hot_channels}))
+                except Exception as ex:
+                    logging.error("exception in get_channels(): %s", ex)
+                    _rpc_socket.send_string(json.dumps({}))
+
+
             elif _message == "get_channel_info":
                 try:
                     _request = json.loads(_rpc_socket.recv_string())
-                    _result = [(n, _channels[n].friendly_name, 
-                                list(_channels[n].participants)) 
+                    _result = [(n, _channels[n].friendly_name,
+                                list(_channels[n].participants))
                                for n in _request['channels']]
                     _rpc_socket.send_string(json.dumps(_result))
                 except:
@@ -533,7 +538,7 @@ def main():
                     return
                 _channels[_rename_info['cuid']].friendly_name = _rename_info['name'].strip()
                 _rpc_socket.send_string('ok')
-                
+
             elif _message == "publish":
                 _sender_id = int(_rpc_socket.recv_string())
                 _channel = _rpc_socket.recv_string()
@@ -572,7 +577,7 @@ def main():
             time.sleep(3)
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)            
+            print(exc_type, fname, exc_tb.tb_lineno)
             raise ex
 
 if __name__ == "__main__":

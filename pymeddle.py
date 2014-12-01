@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
-#import os
-#import zmq.backend.cython
 ##os.environ['PYZMQ_BACKEND'] = 'cython'
 #import zmq
+try:
+    import zmq.backend.cython
+except:
+    pass
 if sys.version_info < (2, 7,):
     print("please use only Python 2.7 an up")
     sys.exit(-1)
@@ -13,7 +15,7 @@ try:
     import zmq
 except:
     print("you need the pyzmq package installed for your running python "
-          "instance (version %s." % ".".join((str(x) for x in tuple(sys.version_info))))
+          "instance (version %s)." % ".".join((str(x) for x in tuple(sys.version_info))))
     print("")
     print("go to https://pypi.python.org/pypi/pyzmq/14.4.0, get the wheel file "
           "and install with")
@@ -192,14 +194,14 @@ class base:
 
     def get_channels(self):
         answer = self._request(
-            ("get_channels", 
+            ("get_channels",
              json.dumps({'user':self._my_id,
                          'count':4,
                          'tags':self._perstitent_settings['tags']})))
         _relevant_channels = json.loads(answer)
         for c in self._subscriptions:
             _relevant_channels[c] = 1000
-        answer = self._request(("get_channel_info", 
+        answer = self._request(("get_channel_info",
                                 json.dumps({'channels':_relevant_channels})))
         _my_channels = json.loads(answer)
         logging.info("channels: %s" % _my_channels)
@@ -211,7 +213,7 @@ class base:
         answer = self._request("get_active_tags")
         _tags = json.loads(answer)
         return _tags
-    
+
     def get_friendly_name(self, cuid):
         if cuid in self._channel_friendly_names:
             return self._channel_friendly_names[cuid]
@@ -233,7 +235,7 @@ class base:
                                                               'name': name})))
         if not answer == 'ok':
             logging.warning("answer was %s" % answer)
-            
+
 
     def get_connection_status(self):
         return bool(self._connection_status)
