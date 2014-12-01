@@ -439,16 +439,26 @@ class MeddleWindow(QtGui.QWidget):
 
     @QtCore.pyqtSlot(str, str, str, str)
     def _meddle_on_tag_notification(self, tag, channel, user, text):
+        _lb = self._lst_notifications
         _tag, _channel, _user, _text = (str(x) for x in (tag, channel, user, text))
 
         logging.info("tag '%s' has been mentioned on channel %s: %s",
                      _tag, _channel, _text)
-        self._lst_notifications.addItem("%s: %s: %s" % (_channel, _user, _text))
+        _lb.addItem("%s: %s: %s" % (_channel, _user, _text))
         self._show_notification("%s: %s: %s" % (_channel, _user, _text))
+        _lb.verticalScrollBar().setValue(_lb.verticalScrollBar().maximum())
 
     @QtCore.pyqtSlot(list)
     def _meddle_on_user_update(self, users):
         self._update_user_list(users)
+
+    @QtCore.pyqtSlot(list)
+    def _meddle_on_search_result(self, search_result):
+        _lb = self._lst_notifications
+        for _cuid, t, l, u, x in search_result:
+            _fname = self.meddle_base.get_friendly_name(_cuid)
+            _lb.addItem("%s: %s: %s" % (_fname, u, x))
+        _lb.verticalScrollBar().setValue(_lb.verticalScrollBar().maximum())
 
     @QtCore.pyqtSlot(dict)
     def _meddle_on_channels_update(self, channels):
@@ -504,6 +514,12 @@ class MeddleWindow(QtGui.QWidget):
                 self, "_meddle_on_user_update",
                 QtCore.Qt.QueuedConnection,
                 QtCore.Q_ARG(list, users))
+        
+    def meddle_on_search_result(self, search_result):
+        QtCore.QMetaObject.invokeMethod(
+                self, "_meddle_on_search_result",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(list, search_result))
 
     def meddle_on_tags_update(self, tags):
         QtCore.QMetaObject.invokeMethod(

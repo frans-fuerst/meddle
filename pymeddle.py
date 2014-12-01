@@ -127,7 +127,7 @@ class base:
     def publish(self, channel, text):
         with self._mutex_rpc_socket:
             self._rpc_socket.send_multipart(
-                tuple(str(x).encode() for x in (
+                tuple(str(x).encode('utf-8') for x in (
                     "publish", self._my_id, channel, text)))
             answer = self._rpc_socket.recv_string()
             if answer != 'ok':
@@ -336,6 +336,9 @@ class base:
                 if _opcode == 'join_channel':
                     _channel = self._sub_socket.recv_string()
                     self.join_channel(_channel)
+                elif _opcode == 'search_result':
+                    _search_result = json.loads(self._sub_socket.recv_string())
+                    self._handler.meddle_on_search_result(_search_result)
                 else:
                     logging.info("got strange '%s'", _opcode)
             elif message == "channels_update":

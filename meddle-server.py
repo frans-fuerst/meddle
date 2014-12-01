@@ -134,12 +134,24 @@ def publish_tags(socket, all_tags):
              json.dumps(all_tags).encode()])
 
 def notify_user(socket, user_id, msg):
-    socket.send_multipart(
-        tuple(str(x).encode()
-              for x in ("notify%d" % user_id,) + tuple(msg)))
-
+    if type(msg) in (list, tuple):
+        socket.send_multipart(
+            tuple(str(x).encode()
+                  for x in ("notify%d" % user_id,) + tuple(msg)))
+    else:
+        socket.send_multipart((("notify%d" % user_id).encode(), msg.encode()))
+        
 def start_search(socket, search_spec):
-    notify_user(socket, search_spec['user'], ("found nothing",))
+    _result = []
+    _term = search_spec['term'].lower()
+    for _cuid in find_logs():
+        for l, (t, u, x) in enumerate(get_log(_cuid)):
+            if _term in x.lower():
+                print(x)
+                _result.append((_cuid, t, l, u, x))
+    print(search_spec)
+    notify_user(socket, search_spec['user'], ('search_result',
+                                              json.dumps(_result)))
 
 def load_channels(filename):
     try:
