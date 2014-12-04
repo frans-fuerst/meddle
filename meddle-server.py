@@ -41,8 +41,7 @@ def publish(socket, timestamp, participant, channel, text):
                    'text':text}))))
 
     with open('_%s.log' % channel, 'a') as f:
-        f.write("%s: %s: %s: %s" % (timestamp, channel, participant, text))
-        f.write("\n")
+        f.write("%s: %s: %s: %s\n" % (timestamp, channel, participant, text))
 
 def find_logs():
     _ret = []
@@ -50,11 +49,15 @@ def find_logs():
         _ret.append(i[1:-4])
     return _ret
 
-def get_log(channel):
+def get_log(channel, friendlyname=None):
     _return = []
+    _friendlyname = None
     try:
         _filename = '_%s.log' % channel
         for l in open(_filename).readlines():
+            if l.startswith('friendlyname='):
+                _friendlyname = l[len('friendlyname='):]
+                continue
             _t = from_timestamp(l[: l.find(':')].strip())
             l = l[l.find(':')+1:]
             _c = l[: l.find(':')].strip()
@@ -65,6 +68,10 @@ def get_log(channel):
             _return.append(_l)
     except Exception as ex:
         logging.warning("could not open '%s' %s", _filename, ex)
+    
+    if friendlyname is not None and _friendlyname is not None:
+        friendlyname[0] = _friendlyname
+
     return _return
 
 def random_string(N, chars=None):
@@ -212,13 +219,16 @@ def refresh_channel_information(channels, all_tags, force=False):
     for c in _available_channels:
         logging.info("    load channel '%s'", c)
         channels[c] = channel(c)
-        _logs = get_log(c)
+        _fn_ptr = [None]
+        _logs = get_log(c, _fn_ptr)
         for t, u, x in _logs:
             _tags = extract_tags(x)
             channels[c].add_participant(u, t)
             channels[c].add_tags(_tags)
             store_tags(all_tags, _tags, c, u)
-
+        if _fn_ptr[0] is not None:
+            channels[c].friendly_name = _fn_ptr[0]
+            
 def filter_channels(channels, all_tags, user, hint):
     _channel_list = [[n, c, 0] for n, c in channels.items()]
     _count = hint['count']
@@ -536,9 +546,13 @@ def main():
                         and len(_rename_info['name'].strip())>3):
                     _rpc_socket.send_string('nok')
                     return
-                _channels[_rename_info['cuid']].friendly_name = _rename_info['name'].strip()
                 _rpc_socket.send_string('ok')
-
+                _cuid = _rename_info['cuid']
+                _new_friendlyname = _rename_info['name'].strip()
+                _channels[_cuid].friendly_name = _new_friendlyname
+                with open('_%s.log' % _cuid, 'a') as f:
+                    f.write("friendlyname=%s\n" % _new_friendlyname)
+                
             elif _message == "publish":
                 _sender_id = int(_rpc_socket.recv_string())
                 _channel = _rpc_socket.recv_string()
